@@ -27,7 +27,8 @@ export function buildTackle(promises: PromiseData[], rng: Rng): Bait[] {
   // Fisher-Yates partial shuffle
   for (let i = 0; i < TACKLE_SIZE; i++) {
     const j = i + rng.int(pool.length - i);
-    [pool[i], pool[j]] = [pool[j], pool[i]];
+    const a = pool[i]!, b = pool[j]!;
+    pool[i] = b; pool[j] = a;
   }
   return pool.slice(0, TACKLE_SIZE).map(toBait);
 }

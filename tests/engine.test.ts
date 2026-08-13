@@ -50,3 +50,23 @@ describe('hook click', () => {
     expect(g3.released).toBe(1);
   });
 });
+
+describe('escape in step', () => {
+  it('clears bitingVoterId when the biting voter escapes (deadline in the past)', () => {
+    const g = createGame({ party: 's', promises: [pp('välfärd'),pp('skatter'),pp('övrigt'),pp('försvar'),pp('infrastruktur'),pp('migration')], seed: 1 });
+    // Inject a biting voter whose hook window already closed, and track its id.
+    const staleId = 42;
+    const g2: typeof g = {
+      ...g,
+      bitingVoterId: staleId,
+      voters: [{ id: staleId, x: g.spotX, y: g.spotY, vx: 0, vy: 0, category: g.tackle[0]!.category, age: 'adult', state: 'biting', biteDeadline: 1_000 }],
+    };
+    // Game clock `elapsed` after a 10s step is well past the 1_000 deadline → escape.
+    const s = step(g2, 10_000);
+    expect(s.bitingVoterId).toBeNull();
+    const escaper = s.voters.find((v) => v.id === staleId);
+    expect(escaper).toBeDefined();
+    expect(escaper!.state).toBe('wander');
+    expect(escaper!.biteDeadline).toBeUndefined();
+  });
+});

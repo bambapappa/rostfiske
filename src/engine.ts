@@ -1,5 +1,5 @@
 import { makeRng, type Rng } from './rng';
-import { ROUND_MS, MAX_VOTERS, TACKLE_SIZE, VOTER_SPEED, type PartyCode } from './constants';
+import { ROUND_MS, MAX_VOTERS, TACKLE_SIZE, VOTER_SPEED, LOGICAL_W, LOGICAL_H, type PartyCode } from './constants';
 import { buildTackle, activeBait, wearBait, isWorn } from './bait';
 import { matches, spawnVoter } from './voter';
 import { beginBite, hookSucceeds, bittenVoterEscapes, resolveCatch, moveAttracted } from './fishing';
@@ -70,7 +70,8 @@ export function step(state: GameState, dtMs: number): GameState {
   voters = voters.map((v) => {
     if (v.state === 'biting') {
       if (bittenVoterEscapes(v, elapsed)) {
-        // escaped → return to wandering (clear)
+        // escaped → return to wandering (clear stale id so later biters can register)
+        if (bitingVoterId === v.id) bitingVoterId = null;
         return { ...v, state: 'wander' as const, biteDeadline: undefined };
       }
       return v;
@@ -93,8 +94,8 @@ export function step(state: GameState, dtMs: number): GameState {
     // wander
     const nx = v.x + (v.vx * VOTER_SPEED * dtMs) / 1000;
     const ny = v.y + (v.vy * VOTER_SPEED * dtMs) / 1000;
-    if (nx < 0 || nx > 384) return { ...v, vx: -v.vx };
-    if (ny < 0 || ny > 216) return { ...v, vy: -v.vy };
+    if (nx < 0 || nx > LOGICAL_W) return { ...v, vx: -v.vx };
+    if (ny < 0 || ny > LOGICAL_H) return { ...v, vy: -v.vy };
     return { ...v, x: nx, y: ny };
   });
 
