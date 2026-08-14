@@ -51,6 +51,27 @@ describe('hook click', () => {
   });
 });
 
+describe('one biter at a time', () => {
+  it('only the first arriving voter bites; later arrivals stay attracted', () => {
+    const g = createGame({ party: 's', promises: [pp('välfärd'),pp('skatter'),pp('övrigt'),pp('försvar'),pp('infrastruktur'),pp('migration')], seed: 1 });
+    const cat = g.tackle[0]!.category;
+    // Two matching voters already at the rod, both attracted.
+    const g2: typeof g = {
+      ...g,
+      voters: [1, 2].map((id) => ({
+        id, x: g.spotX, y: g.spotY, vx: 0, vy: 0, category: cat, age: 'adult' as const,
+        state: 'attracted' as const, attractToX: g.spotX, attractToY: g.spotY,
+      })),
+    };
+    const s = step(g2, 16);
+    const biting = s.voters.filter((v) => v.state === 'biting');
+    const attracted = s.voters.filter((v) => v.state === 'attracted');
+    expect(biting).toHaveLength(1);
+    expect(attracted).toHaveLength(1);
+    expect(s.bitingVoterId).toBe(biting[0]!.id);
+  });
+});
+
 describe('escape in step', () => {
   it('clears bitingVoterId when the biting voter escapes (deadline in the past)', () => {
     const g = createGame({ party: 's', promises: [pp('välfärd'),pp('skatter'),pp('övrigt'),pp('försvar'),pp('infrastruktur'),pp('migration')], seed: 1 });

@@ -7,26 +7,34 @@ const DEFAULT_PARTIES_URL = 'https://utlovat.se/api/v1/parties.json';
 
 const asCategory = (x: unknown): Category =>
   CATEGORIES.includes(x as Category) ? (x as Category) : 'övrigt';
-const asParty = (x: unknown): PartyCode =>
-  PARTIES.includes(x as PartyCode) ? (x as PartyCode) : 's';
+// Unknown parties are NOT coerced (an unknown party is not 's'): promises
+// with a party outside PARTIES are dropped, matching validateParties.
+// Neutrality wins over salvaging data.
+const asParty = (x: unknown): PartyCode | null =>
+  PARTIES.includes(x as PartyCode) ? (x as PartyCode) : null;
 
 export function validatePromises(raw: any): PromiseData[] {
   const data = Array.isArray(raw?.data) ? raw.data : [];
   return data
     .filter((p: any) => p && typeof p.id === 'string' && p.status === 'aktiv')
-    .map((p: any): PromiseData => ({
-      id: p.id,
-      title: typeof p.title === 'string' ? p.title : '',
-      quote: typeof p.quote === 'string' ? p.quote : '',
-      party: asParty(Array.isArray(p.parties) ? p.parties[0] : p.parties),
-      category: asCategory(p.category),
-      msekBase: Number(p?.cost?.msek_base) || 0,
-      status: 'aktiv',
-      source: {
-        url: typeof p?.source?.url === 'string' ? p.source.url : '',
-        domain: typeof p?.source?.domain === 'string' ? p.source.domain : '',
-      },
-    }));
+    .map((p: any): PromiseData | null => {
+      const party = asParty(Array.isArray(p.parties) ? p.parties[0] : p.parties);
+      if (party === null) return null;
+      return {
+        id: p.id,
+        title: typeof p.title === 'string' ? p.title : '',
+        quote: typeof p.quote === 'string' ? p.quote : '',
+        party,
+        category: asCategory(p.category),
+        msekBase: Number(p?.cost?.msek_base) || 0,
+        status: 'aktiv',
+        source: {
+          url: typeof p?.source?.url === 'string' ? p.source.url : '',
+          domain: typeof p?.source?.domain === 'string' ? p.source.domain : '',
+        },
+      };
+    })
+    .filter((p: PromiseData | null): p is PromiseData => p !== null);
 }
 
 export function validateParties(raw: any): PartyData[] {

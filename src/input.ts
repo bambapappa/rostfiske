@@ -6,6 +6,8 @@ export interface InputHandlers {
   onSpot: (id: SpotId) => void;
   onHook: () => void;
   onSelectBait: (slot: number) => void;
+  /** True while a voter is on the hook — hook input gets primacy over spot select. */
+  isBiting: () => boolean;
 }
 
 export function bindInput(canvas: HTMLCanvasElement, h: InputHandlers): () => void {
@@ -15,6 +17,10 @@ export function bindInput(canvas: HTMLCanvasElement, h: InputHandlers): () => vo
     return { x: (e.clientX - r.left) * sx, y: (e.clientY - r.top) * sy };
   };
   const onClick = (e: MouseEvent) => {
+    // Hook primacy: the politician stands ON the spot and biters converge
+    // there, so a reflex click inside the spot hitbox must hook the biter,
+    // not re-select the (current) spot and eat the input.
+    if (h.isBiting()) { h.onHook(); return; }
     const { x, y } = toLogical(e);
     const hit = SPOTS.find((s) => Math.abs(s.x - x) < 14 && Math.abs(s.y - y) < 10);
     if (hit) h.onSpot(hit.id);

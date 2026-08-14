@@ -1,0 +1,718 @@
+{
+  "data": [
+    {
+      "id": "fb-s-1",
+      "title": "Socialdemokraterna löfte 1 om välfärd",
+      "quote": "Vi lovar förbättrad välfärd.",
+      "parties": [
+        "s"
+      ],
+      "category": "välfärd",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 100
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/s-1",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-s-2",
+      "title": "Socialdemokraterna löfte 2 om utbildning",
+      "quote": "Vi lovar förbättrad utbildning.",
+      "parties": [
+        "s"
+      ],
+      "category": "utbildning",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 200
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/s-2",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-s-3",
+      "title": "Socialdemokraterna löfte 3 om skatter",
+      "quote": "Vi lovar förbättrad skatter.",
+      "parties": [
+        "s"
+      ],
+      "category": "skatter",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 300
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/s-3",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-s-4",
+      "title": "Socialdemokraterna löfte 4 om klimat-miljö",
+      "quote": "Vi lovar förbättrad klimat-miljö.",
+      "parties": [
+        "s"
+      ],
+      "category": "klimat-miljö",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 400
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/s-4",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-s-5",
+      "title": "Socialdemokraterna löfte 5 om rättsväsende",
+      "quote": "Vi lovar förbättrad rättsväsende.",
+      "parties": [
+        "s"
+      ],
+      "category": "rättsväsende",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 500
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/s-5",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-m-1",
+      "title": "Moderaterna löfte 1 om välfärd",
+      "quote": "Vi lovar förbättrad välfärd.",
+      "parties": [
+        "m"
+      ],
+      "category": "välfärd",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 100
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/m-1",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-m-2",
+      "title": "Moderaterna löfte 2 om utbildning",
+      "quote": "Vi lovar förbättrad utbildning.",
+      "parties": [
+        "m"
+      ],
+      "category": "utbildning",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 200
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/m-2",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-m-3",
+      "title": "Moderaterna löfte 3 om skatter",
+      "quote": "Vi lovar förbättrad skatter.",
+      "parties": [
+        "m"
+      ],
+      "category": "skatter",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 300
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/m-3",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-m-4",
+      "title": "Moderaterna löfte 4 om klimat-miljö",
+      "quote": "Vi lovar förbättrad klimat-miljö.",
+      "parties": [
+        "m"
+      ],
+      "category": "klimat-miljö",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 400
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/m-4",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-m-5",
+      "title": "Moderaterna löfte 5 om rättsväsende",
+      "quote": "Vi lovar förbättrad rättsväsende.",
+      "parties": [
+        "m"
+      ],
+      "category": "rättsväsende",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 500
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/m-5",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-sd-1",
+      "title": "Sverigedemokraterna löfte 1 om välfärd",
+      "quote": "Vi lovar förbättrad välfärd.",
+      "parties": [
+        "sd"
+      ],
+      "category": "välfärd",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 100
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/sd-1",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-sd-2",
+      "title": "Sverigedemokraterna löfte 2 om utbildning",
+      "quote": "Vi lovar förbättrad utbildning.",
+      "parties": [
+        "sd"
+      ],
+      "category": "utbildning",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 200
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/sd-2",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-sd-3",
+      "title": "Sverigedemokraterna löfte 3 om skatter",
+      "quote": "Vi lovar förbättrad skatter.",
+      "parties": [
+        "sd"
+      ],
+      "category": "skatter",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 300
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/sd-3",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-sd-4",
+      "title": "Sverigedemokraterna löfte 4 om klimat-miljö",
+      "quote": "Vi lovar förbättrad klimat-miljö.",
+      "parties": [
+        "sd"
+      ],
+      "category": "klimat-miljö",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 400
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/sd-4",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-sd-5",
+      "title": "Sverigedemokraterna löfte 5 om rättsväsende",
+      "quote": "Vi lovar förbättrad rättsväsende.",
+      "parties": [
+        "sd"
+      ],
+      "category": "rättsväsende",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 500
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/sd-5",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-c-1",
+      "title": "Centerpartiet löfte 1 om välfärd",
+      "quote": "Vi lovar förbättrad välfärd.",
+      "parties": [
+        "c"
+      ],
+      "category": "välfärd",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 100
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/c-1",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-c-2",
+      "title": "Centerpartiet löfte 2 om utbildning",
+      "quote": "Vi lovar förbättrad utbildning.",
+      "parties": [
+        "c"
+      ],
+      "category": "utbildning",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 200
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/c-2",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-c-3",
+      "title": "Centerpartiet löfte 3 om skatter",
+      "quote": "Vi lovar förbättrad skatter.",
+      "parties": [
+        "c"
+      ],
+      "category": "skatter",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 300
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/c-3",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-c-4",
+      "title": "Centerpartiet löfte 4 om klimat-miljö",
+      "quote": "Vi lovar förbättrad klimat-miljö.",
+      "parties": [
+        "c"
+      ],
+      "category": "klimat-miljö",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 400
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/c-4",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-c-5",
+      "title": "Centerpartiet löfte 5 om rättsväsende",
+      "quote": "Vi lovar förbättrad rättsväsende.",
+      "parties": [
+        "c"
+      ],
+      "category": "rättsväsende",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 500
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/c-5",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-v-1",
+      "title": "Vänsterpartiet löfte 1 om välfärd",
+      "quote": "Vi lovar förbättrad välfärd.",
+      "parties": [
+        "v"
+      ],
+      "category": "välfärd",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 100
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/v-1",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-v-2",
+      "title": "Vänsterpartiet löfte 2 om utbildning",
+      "quote": "Vi lovar förbättrad utbildning.",
+      "parties": [
+        "v"
+      ],
+      "category": "utbildning",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 200
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/v-2",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-v-3",
+      "title": "Vänsterpartiet löfte 3 om skatter",
+      "quote": "Vi lovar förbättrad skatter.",
+      "parties": [
+        "v"
+      ],
+      "category": "skatter",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 300
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/v-3",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-v-4",
+      "title": "Vänsterpartiet löfte 4 om klimat-miljö",
+      "quote": "Vi lovar förbättrad klimat-miljö.",
+      "parties": [
+        "v"
+      ],
+      "category": "klimat-miljö",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 400
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/v-4",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-v-5",
+      "title": "Vänsterpartiet löfte 5 om rättsväsende",
+      "quote": "Vi lovar förbättrad rättsväsende.",
+      "parties": [
+        "v"
+      ],
+      "category": "rättsväsende",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 500
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/v-5",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-kd-1",
+      "title": "Kristdemokraterna löfte 1 om välfärd",
+      "quote": "Vi lovar förbättrad välfärd.",
+      "parties": [
+        "kd"
+      ],
+      "category": "välfärd",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 100
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/kd-1",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-kd-2",
+      "title": "Kristdemokraterna löfte 2 om utbildning",
+      "quote": "Vi lovar förbättrad utbildning.",
+      "parties": [
+        "kd"
+      ],
+      "category": "utbildning",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 200
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/kd-2",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-kd-3",
+      "title": "Kristdemokraterna löfte 3 om skatter",
+      "quote": "Vi lovar förbättrad skatter.",
+      "parties": [
+        "kd"
+      ],
+      "category": "skatter",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 300
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/kd-3",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-kd-4",
+      "title": "Kristdemokraterna löfte 4 om klimat-miljö",
+      "quote": "Vi lovar förbättrad klimat-miljö.",
+      "parties": [
+        "kd"
+      ],
+      "category": "klimat-miljö",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 400
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/kd-4",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-kd-5",
+      "title": "Kristdemokraterna löfte 5 om rättsväsende",
+      "quote": "Vi lovar förbättrad rättsväsende.",
+      "parties": [
+        "kd"
+      ],
+      "category": "rättsväsende",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 500
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/kd-5",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-l-1",
+      "title": "Liberalerna löfte 1 om välfärd",
+      "quote": "Vi lovar förbättrad välfärd.",
+      "parties": [
+        "l"
+      ],
+      "category": "välfärd",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 100
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/l-1",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-l-2",
+      "title": "Liberalerna löfte 2 om utbildning",
+      "quote": "Vi lovar förbättrad utbildning.",
+      "parties": [
+        "l"
+      ],
+      "category": "utbildning",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 200
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/l-2",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-l-3",
+      "title": "Liberalerna löfte 3 om skatter",
+      "quote": "Vi lovar förbättrad skatter.",
+      "parties": [
+        "l"
+      ],
+      "category": "skatter",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 300
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/l-3",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-l-4",
+      "title": "Liberalerna löfte 4 om klimat-miljö",
+      "quote": "Vi lovar förbättrad klimat-miljö.",
+      "parties": [
+        "l"
+      ],
+      "category": "klimat-miljö",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 400
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/l-4",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-l-5",
+      "title": "Liberalerna löfte 5 om rättsväsende",
+      "quote": "Vi lovar förbättrad rättsväsende.",
+      "parties": [
+        "l"
+      ],
+      "category": "rättsväsende",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 500
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/l-5",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-mp-1",
+      "title": "Miljöpartiet löfte 1 om välfärd",
+      "quote": "Vi lovar förbättrad välfärd.",
+      "parties": [
+        "mp"
+      ],
+      "category": "välfärd",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 100
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/mp-1",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-mp-2",
+      "title": "Miljöpartiet löfte 2 om utbildning",
+      "quote": "Vi lovar förbättrad utbildning.",
+      "parties": [
+        "mp"
+      ],
+      "category": "utbildning",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 200
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/mp-2",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-mp-3",
+      "title": "Miljöpartiet löfte 3 om skatter",
+      "quote": "Vi lovar förbättrad skatter.",
+      "parties": [
+        "mp"
+      ],
+      "category": "skatter",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 300
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/mp-3",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-mp-4",
+      "title": "Miljöpartiet löfte 4 om klimat-miljö",
+      "quote": "Vi lovar förbättrad klimat-miljö.",
+      "parties": [
+        "mp"
+      ],
+      "category": "klimat-miljö",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 400
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/mp-4",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-mp-5",
+      "title": "Miljöpartiet löfte 5 om rättsväsende",
+      "quote": "Vi lovar förbättrad rättsväsende.",
+      "parties": [
+        "mp"
+      ],
+      "category": "rättsväsende",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 500
+      },
+      "source": {
+        "url": "https://utlovat.se/löfte/mp-5",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-s-avslutad",
+      "title": "Avslutat löfte",
+      "quote": "q",
+      "parties": [
+        "s"
+      ],
+      "category": "välfärd",
+      "status": "avslutad",
+      "cost": {
+        "msek_base": 1
+      },
+      "source": {
+        "url": "https://utlovat.se/x",
+        "domain": "utlovat.se"
+      }
+    },
+    {
+      "id": "fb-xx-1",
+      "title": "Okänt parti löfte",
+      "quote": "q",
+      "parties": [
+        "xx"
+      ],
+      "category": "skatter",
+      "status": "aktiv",
+      "cost": {
+        "msek_base": 2
+      },
+      "source": {
+        "url": "https://utlovat.se/y",
+        "domain": "utlovat.se"
+      }
+    }
+  ]
+}

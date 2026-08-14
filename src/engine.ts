@@ -81,8 +81,11 @@ export function step(state: GameState, dtMs: number): GameState {
       const moved = moveAttracted(v, dtMs);
       const arrived = Math.hypot(moved.x - state.spotX, moved.y - state.spotY) < 6;
       if (arrived) {
+        // Cap to one biter at a time: only the first arrival bites, later
+        // arrivals hold nearby as attracted until the hook frees up.
+        if (bitingVoterId !== null) return moved;
         const b = beginBite(moved, elapsed);
-        if (bitingVoterId === null) bitingVoterId = b.id;
+        bitingVoterId = b.id;
         return b;
       }
       return moved;

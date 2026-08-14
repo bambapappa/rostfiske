@@ -61,6 +61,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, state: GameState, sprit
   ctx.fillText(`Släppta: ${state.released}`, 4, 20);
   ctx.fillText(`Tid: ${Math.ceil(state.timeLeftMs / 1000)}s`, 4, 30);
   ctx.textAlign = 'right';
-  ctx.fillText(bait ? `${bait.title.slice(0,18)} (${bait.durability})` : 'Inget bete!', LOGICAL_W - 4, 10);
+  // CC BY 4.0: the source domain always accompanies the bait label.
+  ctx.fillText(bait ? `${bait.title.slice(0,18)} (${bait.durability}) · ${bait.sourceDomain}` : 'Inget bete!', LOGICAL_W - 4, 10);
   ctx.textAlign = 'left';
 }

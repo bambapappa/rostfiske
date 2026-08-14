@@ -4,6 +4,7 @@ import { createGame, step, onHookClick, type GameState } from './engine';
 import { drawScene } from './render';
 import { bindInput } from './input';
 import { loadStore, saveStore, addScore, bestOf } from './highscore';
+import { catchLine } from './ui';
 import { LOGICAL_W, LOGICAL_H, PARTIES, ROUND_MS } from './constants';
 import { spotById } from './world';
 
@@ -30,6 +31,8 @@ async function main(): Promise<void> {
     let now = performance.now();
     let acc = 0;
     const STEP = 1000 / 60;
+    const overlay = document.getElementById('overlay');
+    let prevCatch: GameState['lastCatch'] = null;
 
     bindInput(canvas, {
       onSpot: (id) => {
@@ -41,11 +44,17 @@ async function main(): Promise<void> {
         const b = g.tackle[slot]; if (!b) return;
         g = { ...g, tackle: [b, ...g.tackle.filter((x) => x !== b)] };
       },
+      isBiting: () => g.bitingVoterId !== null,
     });
 
     function frame(t: number): void {
       const dt = Math.min(250, t - now); now = t; acc += dt;
       while (acc >= STEP) { g = step(g, STEP); acc -= STEP; }
+      // surface each new catch (source attribution, CC BY 4.0) in the overlay
+      if (g.lastCatch !== null && g.lastCatch !== prevCatch) {
+        prevCatch = g.lastCatch;
+        if (overlay) overlay.textContent = catchLine(g.lastCatch);
+      }
       drawScene(ctx, g, sprites, parties, t);
       if (g.phase === 'game_over') {
         const rows = addScore(store, { party: g.party, votes: g.votes, released: g.released, at: Date.now() });
