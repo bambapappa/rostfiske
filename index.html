@@ -8,12 +8,17 @@
     #wrap{display:flex;flex-direction:column;align-items:center;padding:8px;}
     canvas{width:min(96vw, 1152px);image-rendering:pixelated;image-rendering:crisp-edges;background:#1a1c2c;border:2px solid #333;}
     #overlay{min-height:1.5em;margin-top:6px;font-size:12px;}
+    /* character-select grid: every party framed identically (neutrality) */
+    #select{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;width:min(96vw,1152px);margin:6px 0;}
+    #select .party-option{font:inherit;font-size:13px;padding:10px 4px;color:#fff;background:#1a1c2c;border:2px solid #888;cursor:pointer;}
+    #select .party-option:hover{background:#262a44;}
   </style>
 </head>
 <body>
   <div id="wrap">
+    <div id="select" aria-label="Välj partiledare"></div>
     <canvas id="game"></canvas>
-    <div id="overlay">Röstfiske — klicka en plats för att fiska, mellanslag = mothugg, 1–5 = välj bete</div>
+    <div id="overlay">Välj en partiledare ovan för att börja — klicka = kasta lapp/mothugg, mellanslag = mothugg, Q/W/E/R = plats, 1–5 = bete</div>
   </div>
   <script type="module" src="/src/main.ts"></script>
 </body>

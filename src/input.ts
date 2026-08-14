@@ -1,14 +1,22 @@
 import { LOGICAL_W, LOGICAL_H } from './constants';
-import { SPOTS } from './world';
 import type { SpotId } from './types';
 
 export interface InputHandlers {
   onSpot: (id: SpotId) => void;
   onHook: () => void;
+  /** Cast the lapp to a logical (x, y) in the town. */
+  onCast: (x: number, y: number) => void;
   onSelectBait: (slot: number) => void;
-  /** True while a voter is on the hook — hook input gets primacy over spot select. */
+  /** True while a voter is on the hook — hook input gets primacy over casting. */
   isBiting: () => boolean;
 }
+
+const SPOT_KEYS: Record<string, SpotId> = {
+  q: 'torget',
+  w: 'skolan',
+  e: 'aldreboendet',
+  r: 'stationen',
+};
 
 export function bindInput(canvas: HTMLCanvasElement, h: InputHandlers): () => void {
   const toLogical = (e: MouseEvent) => {
@@ -17,17 +25,15 @@ export function bindInput(canvas: HTMLCanvasElement, h: InputHandlers): () => vo
     return { x: (e.clientX - r.left) * sx, y: (e.clientY - r.top) * sy };
   };
   const onClick = (e: MouseEvent) => {
-    // Hook primacy: the politician stands ON the spot and biters converge
-    // there, so a reflex click inside the spot hitbox must hook the biter,
-    // not re-select the (current) spot and eat the input.
+    // Hook primacy: while a voter holds the lapp, ANY click is a hook attempt.
     if (h.isBiting()) { h.onHook(); return; }
     const { x, y } = toLogical(e);
-    const hit = SPOTS.find((s) => Math.abs(s.x - x) < 14 && Math.abs(s.y - y) < 10);
-    if (hit) h.onSpot(hit.id);
-    else h.onHook();
+    h.onCast(x, y);
   };
   const onKey = (e: KeyboardEvent) => {
     if (e.code === 'Space') h.onHook();
+    const spot = SPOT_KEYS[e.key.toLowerCase()];
+    if (spot) h.onSpot(spot);
     const n = parseInt(e.key, 10);
     if (n >= 1 && n <= 5) h.onSelectBait(n - 1);
   };

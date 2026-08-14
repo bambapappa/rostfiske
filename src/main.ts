@@ -1,11 +1,11 @@
 import { fetchGameInput } from './api';
 import { loadSprites } from './sprites';
-import { createGame, step, onHookClick, type GameState } from './engine';
+import { createGame, step, onHookClick, castLapp, type GameState } from './engine';
 import { drawScene } from './render';
 import { bindInput } from './input';
 import { loadStore, saveStore, addScore, bestOf } from './highscore';
-import { catchLine } from './ui';
-import { LOGICAL_W, LOGICAL_H, PARTIES, ROUND_MS } from './constants';
+import { eventText, showCharacterSelect } from './ui';
+import { LOGICAL_W, LOGICAL_H, ROUND_MS, type PartyCode } from './constants';
 import { spotById } from './world';
 
 async function main(): Promise<void> {
@@ -16,33 +16,41 @@ async function main(): Promise<void> {
 
   const [{ promises, parties }, sprites] = await Promise.all([fetchGameInput(), loadSprites()]);
   const store = loadStore();
+  const overlay = document.getElementById('overlay');
 
-  // Simple flow: pick first party by default; full select UI can wrap this later.
-  let party = PARTIES[0]!;
-  const chosen = (p: typeof party) => {
-    party = p;
-    start();
-  };
-  // expose a tiny debug picker
-  (window as unknown as { pickParty: (p: typeof party) => void }).pickParty = chosen;
+  // Start flow: character select → game. All 8 parties presented identically.
+  const select = document.getElementById('select');
+  if (select) {
+    showCharacterSelect(select, parties, (party: PartyCode) => {
+      select.textContent = '';
+      start(party);
+    });
+  } else {
+    // no container in the document: nothing to play from
+    return;
+  }
 
-  function start(): void {
+  function start(party: PartyCode): void {
     let g: GameState = createGame({ party, promises });
     let now = performance.now();
     let acc = 0;
     const STEP = 1000 / 60;
-    const overlay = document.getElementById('overlay');
-    let prevCatch: GameState['lastCatch'] = null;
+    let prevEvent: GameState['lastEvent'] = null;
 
-    bindInput(canvas, {
+    const unbind = bindInput(canvas, {
       onSpot: (id) => {
         const s = spotById(id);
         g = { ...g, spotId: id, spotX: s.x, spotY: s.y };
       },
       onHook: () => { g = onHookClick(g, ROUND_MS - g.timeLeftMs); },
+      onCast: (x, y) => { g = castLapp(g, x, y); },
       onSelectBait: (slot) => {
         const b = g.tackle[slot]; if (!b) return;
-        g = { ...g, tackle: [b, ...g.tackle.filter((x) => x !== b)] };
+        g = {
+          ...g,
+          tackle: [b, ...g.tackle.filter((x) => x !== b)],
+          lastEvent: { kind: 'baitSelected', text: `Bete ${slot + 1}: ${b.title}` },
+        };
       },
       isBiting: () => g.bitingVoterId !== null,
     });
@@ -50,13 +58,14 @@ async function main(): Promise<void> {
     function frame(t: number): void {
       const dt = Math.min(250, t - now); now = t; acc += dt;
       while (acc >= STEP) { g = step(g, STEP); acc -= STEP; }
-      // surface each new catch (source attribution, CC BY 4.0) in the overlay
-      if (g.lastCatch !== null && g.lastCatch !== prevCatch) {
-        prevCatch = g.lastCatch;
-        if (overlay) overlay.textContent = catchLine(g.lastCatch);
+      // event splash: surface each new event (catch/release keep their source line)
+      if (g.lastEvent !== null && g.lastEvent !== prevEvent) {
+        prevEvent = g.lastEvent;
+        if (overlay) overlay.textContent = eventText(g.lastEvent);
       }
       drawScene(ctx, g, sprites, parties, t);
       if (g.phase === 'game_over') {
+        unbind();
         const rows = addScore(store, { party: g.party, votes: g.votes, released: g.released, at: Date.now() });
         saveStore(rows);
         drawGameOver(ctx, g, bestOf(rows));
@@ -66,8 +75,6 @@ async function main(): Promise<void> {
     }
     requestAnimationFrame(frame);
   }
-
-  start(); // begin immediately with default party; select UI can gate this later
 }
 
 function drawGameOver(ctx: CanvasRenderingContext2D, g: GameState, best: number): void {

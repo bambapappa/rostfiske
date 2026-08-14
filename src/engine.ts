@@ -5,6 +5,7 @@ import { tryEnter, tryExit, spawnAtBuilding } from './voter';
 import { beginBite, hookSucceeds, bittenVoterEscapes, resolveCatch, resolveMiss, moveAttracted, noticeLapp, reachedLapp } from './fishing';
 import { spotById, BUILDINGS, buildingById } from './world';
 import type { PromiseData, Bait, Voter, GamePhase, SpotId, Lapp, GameEvent } from './types';
+import { catchLine } from './ui';
 
 export interface GameState {
   phase: GamePhase;
@@ -31,12 +32,6 @@ export interface CreateGameOpts {
   promises: PromiseData[];
   seed?: number;
   spotId?: SpotId;
-}
-
-/** Text for a catch/release event (shared shape with ui.ts catchLine; extracted in Task 7). */
-export function eventTextForCatch(c: { title: string; msekBase: number; sourceUrl: string; sourceDomain: string; released: boolean }): string {
-  if (c.released) return 'Släppt tillbaka: saknar rösträtt';
-  return `Fångst: ${c.title} · kostnad ${c.msekBase} msek · källa ${c.sourceDomain} (${c.sourceUrl})`;
 }
 
 export function createGame(opts: CreateGameOpts): GameState {
@@ -179,7 +174,7 @@ export function onHookClick(state: GameState, nowMs: number): GameState {
       votes: state.votes + res.votes,
       released: state.released + (res.released ? 1 : 0),
       bitingVoterId: null, lapp: null, lastCatch,
-      lastEvent: { kind: res.released ? 'release' : 'catch', text: eventTextForCatch(lastCatch) },
+      lastEvent: { kind: res.released ? 'release' : 'catch', text: catchLine(lastCatch) },
     };
   }
   // biting but outside the hook window → the same miss as an escaped biter
