@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { formatSummary, catchLine, eventText, showCharacterSelect } from '../src/ui';
-import { createGame } from '../src/engine';
+import { createGame, castLapp, onHookClick } from '../src/engine';
 import { PARTIES } from '../src/constants';
 import type { GameEvent, PartyData } from '../src/types';
 import type { PartyCode } from '../src/constants';
@@ -121,5 +121,34 @@ describe('showCharacterSelect', () => {
     const btn = container.children[3]!; // 'c'
     btn.listeners['click']![0]!({});
     expect(picked).toEqual(['c']);
+  });
+
+  it('enforces PARTIES order even when the caller passes a shuffled array (neutrality)', () => {
+    const shuffled = [...PARTIES_TEST].reverse();
+    const container = fakeEl('div');
+    showCharacterSelect(container as unknown as HTMLElement, shuffled, () => {});
+    expect(container.children.map((b) => b.textContent)).toEqual([...PARTIES.map((code) => PARTIES_TEST.find((p) => p.code === code)!.name)]);
+  });
+});
+
+describe('eventText over engine-produced events (spec strings at their source)', () => {
+  const promises = Array.from({ length: 6 }, (_, i) => ({ id: 'p' + i, title: 'Löfte ' + i, quote: 'q', party: 's' as PartyCode, category: 'välfärd' as const, msekBase: 1000, status: 'aktiv', source: { url: 'https://ex.se/p/' + i, domain: 'ex.se' } }));
+
+  it('renders engine cast events as the spec Kastar line', () => {
+    const g = createGame({ party: 's', promises, seed: 1 });
+    const bait = g.tackle[0]!;
+    const s = castLapp(g, 100, 100);
+    expect(s.lastEvent).not.toBeNull();
+    expect(eventText(s.lastEvent!)).toBe(`Kastar: ${bait.title}`);
+  });
+
+  it('renders engine catch events with the full CC BY 4.0 source line', () => {
+    const g = createGame({ party: 's', promises, seed: 1 });
+    const bait = g.tackle[0]!;
+    const elapsed = 60_000;
+    const biting = { ...g, timeLeftMs: 180_000 - elapsed, voters: [{ id: 9, x: 100, y: 100, vx: 0, vy: 0, category: 'välfärd' as const, age: 'adult' as const, state: 'biting' as const, variant: 0, biteDeadline: elapsed + 650 }], bitingVoterId: 9 };
+    const s = onHookClick(biting, elapsed);
+    expect(s.lastEvent?.kind).toBe('catch');
+    expect(eventText(s.lastEvent!)).toBe(`Fångst: ${bait.title} · kostnad ${bait.msekBase} msek · källa ex.se (https://ex.se/p/${promises.findIndex((p) => p.title === bait.title)})`);
   });
 });

@@ -27,6 +27,7 @@ async function main(): Promise<void> {
     });
   } else {
     // no container in the document: nothing to play from
+    console.warn('rostfiske: #select saknas');
     return;
   }
 

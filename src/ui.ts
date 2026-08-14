@@ -1,5 +1,5 @@
 import type { GameState } from './engine';
-import type { PartyCode } from './constants';
+import { PARTIES, type PartyCode } from './constants';
 import type { GameEvent, PartyData } from './types';
 
 export type LastCatch = NonNullable<GameState['lastCatch']>;
@@ -23,12 +23,16 @@ export function eventText(e: GameEvent): string {
   return e.text;
 }
 
-/** Character-select grid: one identically-framed button per party, in the
- *  given (= PARTIES) order, party-color border + party name. Click → onPick.
- *  All parties are presented identically (neutrality contract). */
+/** Character-select grid: one identically-framed button per party, party-color
+ *  border + party name. Click → onPick. The grid is ALWAYS rendered in PARTIES
+ *  order regardless of the caller's array order (neutrality contract: identical
+ *  treatment, fixed presentation order). */
 export function showCharacterSelect(container: HTMLElement, parties: PartyData[], onPick: (p: PartyCode) => void): void {
   container.textContent = '';
-  for (const p of parties) {
+  const ordered = [...parties].sort(
+    (a, b) => PARTIES.indexOf(a.code) - PARTIES.indexOf(b.code),
+  );
+  for (const p of ordered) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'party-option';
