@@ -1,5 +1,8 @@
-import { HOOK_WINDOW_MS, ATTRACT_SPEED } from './constants';
-import type { Voter } from './types';
+import { HOOK_WINDOW_MS, ATTRACT_SPEED, NOTICE_RADIUS, NOTICE_PROB_PER_SEC, PICKUP_DIST } from './constants';
+import type { Voter, Lapp, Bait } from './types';
+import { wearBait } from './bait';
+import type { Rng } from './rng';
+import type { Category } from './constants';
 
 export function beginBite(v: Voter, nowMs: number): Voter {
   return { ...v, state: 'biting', biteDeadline: nowMs + HOOK_WINDOW_MS };
@@ -28,5 +31,41 @@ export function moveAttracted(v: Voter, dtMs: number): Voter {
     state: 'toLapp',
     x: v.x + (dx / dist) * move,
     y: v.y + (dy / dist) * move,
+  };
+}
+
+export function noticeLapp(v: Voter, lapp: Lapp, lappCategory: Category, rng: Rng, dtMs: number): Voter {
+  // Only wanderers can notice
+  if (v.state !== 'wander') return v;
+
+  // Distance check
+  const dist = Math.hypot(v.x - lapp.x, v.y - lapp.y);
+  if (dist > NOTICE_RADIUS) return v;
+
+  // Category match check
+  if (v.category !== lappCategory) return v;
+
+  // Probability check (dtMs=0 → probability 0 → never)
+  const probability = NOTICE_PROB_PER_SEC * (dtMs / 1000);
+  if (!rng.bool(probability)) return v;
+
+  // All checks passed → transition to toLapp
+  return {
+    ...v,
+    state: 'toLapp',
+    attractToX: lapp.x,
+    attractToY: lapp.y,
+  };
+}
+
+export function reachedLapp(v: Voter, lapp: Lapp): boolean {
+  const dist = Math.hypot(v.x - lapp.x, v.y - lapp.y);
+  return dist <= PICKUP_DIST;
+}
+
+export function resolveMiss(bait: Bait): { bait: Bait; lappGone: true } {
+  return {
+    bait: wearBait(bait),
+    lappGone: true,
   };
 }
