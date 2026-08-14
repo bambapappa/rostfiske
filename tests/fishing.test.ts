@@ -3,7 +3,7 @@ import { beginBite, hookSucceeds, bittenVoterEscapes, resolveCatch, moveAttracte
 import { HOOK_WINDOW_MS } from '../src/constants';
 import type { Voter } from '../src/types';
 
-const wandering = (over: Partial<Voter> = {}): Voter => ({ id: 1, x: 0, y: 0, vx: 1, vy: 0, category: 'välfärd', age: 'adult', state: 'wander', ...over });
+const wandering = (over: Partial<Voter> = {}): Voter => ({ id: 1, x: 0, y: 0, vx: 1, vy: 0, category: 'välfärd', age: 'adult', state: 'wander', variant: 0, ...over });
 
 describe('hook window', () => {
   it('beginBite opens a window', () => {
@@ -39,6 +39,6 @@ describe('moveAttracted', () => {
     // 34 px/s for 1s toward x=100 from 0 → ~34
     expect(moved.x).toBeGreaterThan(30);
     expect(moved.x).toBeLessThanOrEqual(35);
-    expect(moved.state).toBe('attracted');
+    expect(moved.state).toBe('toLapp');
   });
 });

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { SPOTS, spotById } from '../src/world';
+import { LOGICAL_W, LOGICAL_H } from '../src/constants';
 
 describe('city spots', () => {
   it('has 4 spots with distinct ids', () => {
@@ -8,8 +9,8 @@ describe('city spots', () => {
   });
   it('every spot stands inside the screen', () => {
     for (const s of SPOTS) {
-      expect(s.x).toBeGreaterThan(0); expect(s.x).toBeLessThan(384);
-      expect(s.y).toBeGreaterThan(0); expect(s.y).toBeLessThan(216);
+      expect(s.x).toBeGreaterThan(0); expect(s.x).toBeLessThan(LOGICAL_W);
+      expect(s.y).toBeGreaterThan(0); expect(s.y).toBeLessThan(LOGICAL_H);
     }
   });
   it('school is biased toward utbildning', () => {

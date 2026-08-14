@@ -35,7 +35,7 @@ export interface Bait {
 }
 
 export type VoterAge = 'adult' | 'minor';
-export type VoterState = 'wander' | 'attracted' | 'biting' | 'caught';
+export type VoterState = 'wander' | 'toLapp' | 'biting' | 'inside';
 
 export interface Voter {
   id: number;
@@ -43,9 +43,35 @@ export interface Voter {
   category: Category;
   age: VoterAge;
   state: VoterState;
+  variant: number; // 0..VOTER_VARIANTS-1 appearance index
   attractToX?: number;
   attractToY?: number;
   biteDeadline?: number; // ms (game clock) when hook window closes
+  insideUntil?: number; // ms (game clock) when the voter exits the building
+  buildingId?: string; // set while inside a building
+}
+
+/** A floating note (lapp) on the water, carrying one bait/promise. */
+export interface Lapp {
+  x: number;
+  y: number;
+  baitId: string;
+}
+
+export interface Building {
+  id: string;
+  name: string;
+  x: number; y: number; // logical px of the building footprint
+  doorX: number; doorY: number; // logical px of the door
+  bias: Partial<Record<Category, number>>; // category weight boost when exiting
+}
+
+export type GameEventKind =
+  | 'cast' | 'napp' | 'catch' | 'release' | 'miss' | 'baitWorn' | 'baitSelected';
+
+export interface GameEvent {
+  kind: GameEventKind;
+  text: string;
 }
 
 export type SpotId = 'torget' | 'skolan' | 'aldreboendet' | 'stationen';

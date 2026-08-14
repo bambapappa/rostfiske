@@ -82,7 +82,7 @@ export function step(state: GameState, dtMs: number): GameState {
       const arrived = Math.hypot(moved.x - state.spotX, moved.y - state.spotY) < 6;
       if (arrived) {
         // Cap to one biter at a time: only the first arrival bites, later
-        // arrivals hold nearby as attracted until the hook frees up.
+        // arrivals hold nearby as toLapp until the hook frees up.
         if (bitingVoterId !== null) return moved;
         const b = beginBite(moved, elapsed);
         bitingVoterId = b.id;
@@ -92,7 +92,7 @@ export function step(state: GameState, dtMs: number): GameState {
     }
     if (bait && matches(bait.category, v)) {
       // begin attraction toward the rod
-      return { ...v, state: 'attracted', attractToX: state.spotX, attractToY: state.spotY };
+      return { ...v, state: 'toLapp', attractToX: state.spotX, attractToY: state.spotY };
     }
     // wander
     const nx = v.x + (v.vx * VOTER_SPEED * dtMs) / 1000;

@@ -25,7 +25,7 @@ export function moveAttracted(v: Voter, dtMs: number): Voter {
   const move = Math.min(step, dist);
   return {
     ...v,
-    state: 'attracted',
+    state: 'toLapp',
     x: v.x + (dx / dist) * move,
     y: v.y + (dy / dist) * move,
   };

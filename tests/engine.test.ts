@@ -36,7 +36,7 @@ describe('hook click', () => {
     const g = createGame({ party: 's', promises: [pp('välfärd'),pp('skatter'),pp('övrigt'),pp('försvar'),pp('infrastruktur'),pp('migration')], seed: 1 });
     // inject a biting adult at the rod
     const bait = g.tackle[0]!;
-    const g2: typeof g = { ...g, voters: [{ id: 99, x: g.spotX, y: g.spotY, vx:0, vy:0, category: bait.category, age: 'adult', state: 'biting', biteDeadline: 10_000 }] };
+    const g2: typeof g = { ...g, voters: [{ id: 99, x: g.spotX, y: g.spotY, vx:0, vy:0, category: bait.category, age: 'adult', state: 'biting', variant: 0, biteDeadline: 10_000 }] };
     const g3 = onHookClick(g2, 5_000);
     expect(g3.votes).toBe(1);
     expect(g3.voters.find(v => v.id === 99)).toBeUndefined();
@@ -44,7 +44,7 @@ describe('hook click', () => {
   it('releases (no vote) when a minor is hooked', () => {
     const g = createGame({ party: 's', promises: [pp('välfärd'),pp('skatter'),pp('övrigt'),pp('försvar'),pp('infrastruktur'),pp('migration')], seed: 1 });
     const bait = g.tackle[0]!;
-    const g2: typeof g = { ...g, voters: [{ id: 99, x: g.spotX, y: g.spotY, vx:0, vy:0, category: bait.category, age: 'minor', state: 'biting', biteDeadline: 10_000 }] };
+    const g2: typeof g = { ...g, voters: [{ id: 99, x: g.spotX, y: g.spotY, vx:0, vy:0, category: bait.category, age: 'minor', state: 'biting', variant: 0, biteDeadline: 10_000 }] };
     const g3 = onHookClick(g2, 5_000);
     expect(g3.votes).toBe(0);
     expect(g3.released).toBe(1);
@@ -52,22 +52,22 @@ describe('hook click', () => {
 });
 
 describe('one biter at a time', () => {
-  it('only the first arriving voter bites; later arrivals stay attracted', () => {
+  it('only the first arriving voter bites; later arrivals stay toLapp', () => {
     const g = createGame({ party: 's', promises: [pp('välfärd'),pp('skatter'),pp('övrigt'),pp('försvar'),pp('infrastruktur'),pp('migration')], seed: 1 });
     const cat = g.tackle[0]!.category;
-    // Two matching voters already at the rod, both attracted.
+    // Two matching voters already at the rod, both on their way to the lapp.
     const g2: typeof g = {
       ...g,
       voters: [1, 2].map((id) => ({
         id, x: g.spotX, y: g.spotY, vx: 0, vy: 0, category: cat, age: 'adult' as const,
-        state: 'attracted' as const, attractToX: g.spotX, attractToY: g.spotY,
+        state: 'toLapp' as const, attractToX: g.spotX, attractToY: g.spotY, variant: 0,
       })),
     };
     const s = step(g2, 16);
     const biting = s.voters.filter((v) => v.state === 'biting');
-    const attracted = s.voters.filter((v) => v.state === 'attracted');
+    const held = s.voters.filter((v) => v.state === 'toLapp');
     expect(biting).toHaveLength(1);
-    expect(attracted).toHaveLength(1);
+    expect(held).toHaveLength(1);
     expect(s.bitingVoterId).toBe(biting[0]!.id);
   });
 });
@@ -80,7 +80,7 @@ describe('escape in step', () => {
     const g2: typeof g = {
       ...g,
       bitingVoterId: staleId,
-      voters: [{ id: staleId, x: g.spotX, y: g.spotY, vx: 0, vy: 0, category: g.tackle[0]!.category, age: 'adult', state: 'biting', biteDeadline: 1_000 }],
+      voters: [{ id: staleId, x: g.spotX, y: g.spotY, vx: 0, vy: 0, category: g.tackle[0]!.category, age: 'adult', state: 'biting', variant: 0, biteDeadline: 1_000 }],
     };
     // Game clock `elapsed` after a 10s step is well past the 1_000 deadline → escape.
     const s = step(g2, 10_000);

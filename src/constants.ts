@@ -18,7 +18,22 @@ export const VOTER_SPEED = 18;
 export const ATTRACT_SPEED = 34;
 export const MIN_PROMISES_PER_PARTY = 5;
 
+// Angling (lapp)
+export const NOTICE_RADIUS = 80; // px: a wandering voter this close may notice the lapp
+export const NOTICE_PROB_PER_SEC = 0.4;
+export const PICKUP_DIST = 4; // px: voter picks up the lapp when within this distance
+
+// Buildings
+export const INSIDE_MIN_MS = 3000;
+export const INSIDE_MAX_MS = 10000;
+export const ENTER_PROB_PER_SEC = 0.15;
+
 // Rendering
 export const TILE = 16;
 export const LOGICAL_W = 384;
-export const LOGICAL_H = 216;
+export const LOGICAL_H = 208; // 16 px tiles → integer grid 24×13
+export const TOWN_COLS = 24;
+export const TOWN_ROWS = 13;
+
+// Voter appearance (3 bodies × 4 palettes)
+export const VOTER_VARIANTS = 12;

@@ -1,5 +1,5 @@
 import type { Rng } from './rng';
-import { CATEGORIES, MINOR_PROBABILITY, LOGICAL_W, LOGICAL_H, type Category } from './constants';
+import { CATEGORIES, MINOR_PROBABILITY, LOGICAL_W, LOGICAL_H, VOTER_VARIANTS, type Category } from './constants';
 import type { Voter, VoterAge, VoterState, FishingSpot } from './types';
 
 export function rollAge(rng: Rng): VoterAge {
@@ -31,5 +31,6 @@ export function spawnVoter(rng: Rng, id: number, spot: FishingSpot, bias: Partia
   const y = Math.max(0, Math.min(LOGICAL_H, spot.y + (rng.next() * 80 - 40)));
   const ang = rng.next() * Math.PI * 2;
   const state: VoterState = 'wander';
-  return { id, x, y, vx: Math.cos(ang), vy: Math.sin(ang), category, age, state };
+  const variant = Math.floor(rng.next() * VOTER_VARIANTS);
+  return { id, x, y, vx: Math.cos(ang), vy: Math.sin(ang), category, age, state, variant };
 }
