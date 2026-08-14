@@ -36,3 +36,11 @@ export function buildTackle(promises: PromiseData[], rng: Rng): Bait[] {
 export function activeBait(tackle: Bait[]): Bait | null {
   return tackle.find((b) => !isWorn(b)) ?? null;
 }
+
+/** Resolve a bait by id (the cast promise IS the lapp's identity). The bait may
+ *  be a non-first tackle entry and may already be worn out; as long as it exists
+ *  in the tackle its category still attracts and bites — wear on it just no-ops
+ *  at 0 durability. */
+export function baitById(tackle: Bait[], id: string): Bait | undefined {
+  return tackle.find((b) => b.id === id);
+}

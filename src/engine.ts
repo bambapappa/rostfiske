@@ -1,6 +1,6 @@
 import { makeRng, type Rng } from './rng';
 import { ROUND_MS, MAX_VOTERS, TACKLE_SIZE, VOTER_SPEED, LOGICAL_W, LOGICAL_H, type PartyCode } from './constants';
-import { buildTackle, activeBait, wearBait } from './bait';
+import { buildTackle, activeBait, baitById, wearBait } from './bait';
 import { tryEnter, tryExit, spawnAtBuilding } from './voter';
 import { beginBite, hookSucceeds, bittenVoterEscapes, resolveCatch, resolveMiss, moveAttracted, noticeLapp, reachedLapp } from './fishing';
 import { spotById, BUILDINGS, buildingById } from './world';
@@ -72,8 +72,6 @@ export function step(state: GameState, dtMs: number): GameState {
   if (timeLeftMs === 0) return { ...state, timeLeftMs: 0, phase: 'game_over' };
 
   const elapsed = ROUND_MS - timeLeftMs; // game clock for hook deadlines
-  const prevBait = activeBait(state.tackle);
-  const bait = prevBait;
 
   // spawn at a random building's door, capped at MAX_VOTERS (inside voters count)
   let { rng, nextVoterId, spawnAccMs, voters } = state;
@@ -106,7 +104,9 @@ export function step(state: GameState, dtMs: number): GameState {
       if (!lapp) {
         return { ...v, state: 'wander' as const, attractToX: undefined, attractToY: undefined };
       }
-      const moved = moveAttracted(v, dtMs);
+      // re-aim at the live lapp every step: a recast elsewhere must re-route
+      // en-route voters instead of stranding them at stale coordinates
+      const moved = moveAttracted({ ...v, attractToX: lapp.x, attractToY: lapp.y }, dtMs);
       if (reachedLapp(moved, lapp) && bitingVoterId === null) {
         const biter = beginBite(moved, elapsed);
         bitingVoterId = biter.id;
@@ -117,9 +117,13 @@ export function step(state: GameState, dtMs: number): GameState {
     }
     // wander: notice the lapp → head for a door → plain bounce-walk
     const lapp = state.lapp;
-    if (lapp && bait) {
-      const noticed = noticeLapp(v, lapp, bait.category, rng, dtMs);
-      if (noticed.state !== 'wander') return noticed;
+    if (lapp) {
+      // the lapp attracts by its OWN cast bait (baitId), never by the active slot
+      const lappBait = baitById(state.tackle, lapp.baitId);
+      if (lappBait) {
+        const noticed = noticeLapp(v, lapp, lappBait.category, rng, dtMs);
+        if (noticed.state !== 'wander') return noticed;
+      }
     }
     const door = BUILDINGS.find((b) => Math.hypot(v.x - b.doorX, v.y - b.doorY) < 24);
     if (door) {
@@ -136,18 +140,17 @@ export function step(state: GameState, dtMs: number): GameState {
   let tackle = state.tackle;
   let lapp = state.lapp;
   if (missedIds.length > 0) {
-    // the biter took the lapp: wear the bait, remove the voter, clear the angling state
-    if (bait) tackle = tackle.map((b) => (b === bait ? resolveMiss(bait).bait : b));
+    // the biter took the lapp: wear the LAPP'S bait (resolveMiss no-ops at 0
+    // durability), remove the voter, clear the angling state
+    const lappBait = lapp ? baitById(tackle, lapp.baitId) : undefined;
+    if (lappBait) tackle = tackle.map((b) => (b.id === lappBait.id ? resolveMiss(lappBait).bait : b));
     voters = voters.filter((v) => !missedIds.includes(v.id));
     lapp = null;
     bitingVoterId = null;
+    // interaction events (napp/miss) always win over baitWorn within one step,
+    // so a wear caused by this miss is NOT announced here — deterministically
+    // skipped (the next cast announces the next bait instead)
     lastEvent = { kind: 'miss', text: 'Missad — väljaren tog lappen och gick' };
-  }
-
-  // the active bait changed this step (worn out) → announce the switch
-  const nowBait = activeBait(tackle);
-  if (prevBait && nowBait && prevBait.id !== nowBait.id && tackle.length > 0) {
-    lastEvent = { kind: 'baitWorn', text: `Betet slut: ${prevBait.title} — byter bete` };
   }
 
   return { ...state, timeLeftMs, voters, rng, nextVoterId, spawnAccMs, bitingVoterId, lapp, lastEvent, tackle };
@@ -163,23 +166,34 @@ export function onHookClick(state: GameState, nowMs: number): GameState {
   const idx = state.voters.findIndex((v) => v.id === targetId);
   if (idx === -1) return { ...state, bitingVoterId: null };
   const v = state.voters[idx]!;
-  const bait = activeBait(state.tackle);
+  // the cast promise IS the lapp's identity: resolve the bait via the lapp, not
+  // via the active slot (falls back to the active bait for lapp-less states)
+  const bait = (state.lapp ? baitById(state.tackle, state.lapp.baitId) : undefined) ?? activeBait(state.tackle);
   const voters = state.voters.filter((x) => x.id !== v.id);
   if (v.state === 'biting' && hookSucceeds(v, nowMs) && bait) {
     const res = resolveCatch(v);
-    const tackle = state.tackle.map((b) => (b === bait ? wearBait(b) : b));
+    const wornBait = wearBait(bait); // no-ops at 0 durability
+    const tackle = state.tackle.map((b) => (b.id === bait.id ? wornBait : b));
     const lastCatch = { title: bait.title, msekBase: bait.msekBase, sourceUrl: bait.sourceUrl, sourceDomain: bait.sourceDomain, released: res.released };
+    // a catch that uses up the bait's last durability announces the wear (with
+    // the byter-bete suffix when a successor exists, without it on the last bait);
+    // otherwise the catch/release splash keeps the stage
+    const usedUp = bait.durability > 0 && wornBait.durability === 0;
+    const lastEvent: GameEvent = usedUp
+      ? { kind: 'baitWorn', text: activeBait(tackle) ? `Betet slut: ${bait.title} — byter bete` : `Betet slut: ${bait.title}` }
+      : { kind: res.released ? 'release' : 'catch', text: catchLine(lastCatch) };
     return {
       ...state, voters, tackle,
       votes: state.votes + res.votes,
       released: state.released + (res.released ? 1 : 0),
       bitingVoterId: null, lapp: null, lastCatch,
-      lastEvent: { kind: res.released ? 'release' : 'catch', text: catchLine(lastCatch) },
+      lastEvent,
     };
   }
   // biting but outside the hook window → the same miss as an escaped biter
+  // (interaction events win over baitWorn, so a wear here is never announced)
   let tackle = state.tackle;
-  if (bait) tackle = tackle.map((b) => (b === bait ? resolveMiss(bait).bait : b));
+  if (bait) tackle = tackle.map((b) => (b.id === bait.id ? resolveMiss(bait).bait : b));
   return {
     ...state, voters, tackle,
     bitingVoterId: null, lapp: null,

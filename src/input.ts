@@ -31,6 +31,8 @@ export function bindInput(canvas: HTMLCanvasElement, h: InputHandlers): () => vo
     h.onCast(x, y);
   };
   const onKey = (e: KeyboardEvent) => {
+    // browser shortcuts (Cmd+W, Ctrl+R, Alt+…) and held-key autorepeat are not game input
+    if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
     if (e.code === 'Space') h.onHook();
     const spot = SPOT_KEYS[e.key.toLowerCase()];
     if (spot) h.onSpot(spot);

@@ -90,9 +90,11 @@ describe('bindInput', () => {
       stub.addEventListener = (t, f) => { stub.listeners[t] = f; };
       (globalThis as Record<string, unknown>).window = stub;
     });
-    const press = (canvas: FakeCanvas, key: string, code = key) => {
+    const press = (canvas: FakeCanvas, key: string, code = key, mods: Record<string, unknown> = {}) => {
       const win = ((globalThis as Record<string, unknown>).window as WinStub);
-      (win.listeners['keydown'] as (e: unknown) => void)({ key, code });
+      (win.listeners['keydown'] as (e: unknown) => void)({
+        key, code, metaKey: false, ctrlKey: false, altKey: false, repeat: false, ...mods,
+      });
     };
 
     it('q/w/e/r select the four spots', () => {
@@ -117,6 +119,19 @@ describe('bindInput', () => {
       bindInput(canvas as unknown as HTMLCanvasElement, h);
       press(canvas, ' ', 'Space');
       expect(calls.hook).toHaveLength(1);
+    });
+
+    it('ignores keys with modifiers (Cmd+W, Ctrl+R, Alt+1) and autorepeat', () => {
+      const canvas = new FakeCanvas();
+      const { h, calls } = handlers();
+      bindInput(canvas as unknown as HTMLCanvasElement, h);
+      press(canvas, 'w', 'KeyW', { metaKey: true });   // Cmd+W: close tab, not skolan
+      press(canvas, 'r', 'KeyR', { ctrlKey: true });   // Ctrl+R: reload, not stationen
+      press(canvas, '1', 'Digit1', { altKey: true });
+      press(canvas, ' ', 'Space', { repeat: true });   // held-key autorepeat
+      expect(calls.spot).toHaveLength(0);
+      expect(calls.bait).toHaveLength(0);
+      expect(calls.hook).toHaveLength(0);
     });
 
     it('other keys do nothing', () => {
