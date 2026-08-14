@@ -1,10 +1,10 @@
 import { makeRng, type Rng } from './rng';
 import { ROUND_MS, MAX_VOTERS, TACKLE_SIZE, VOTER_SPEED, LOGICAL_W, LOGICAL_H, type PartyCode } from './constants';
-import { buildTackle, activeBait, wearBait, isWorn } from './bait';
-import { matches, spawnVoter } from './voter';
-import { beginBite, hookSucceeds, bittenVoterEscapes, resolveCatch, moveAttracted } from './fishing';
-import { spotById } from './world';
-import type { PromiseData, Bait, Voter, GamePhase, SpotId } from './types';
+import { buildTackle, activeBait, wearBait } from './bait';
+import { tryEnter, tryExit, spawnAtBuilding } from './voter';
+import { beginBite, hookSucceeds, bittenVoterEscapes, resolveCatch, resolveMiss, moveAttracted, noticeLapp, reachedLapp } from './fishing';
+import { spotById, BUILDINGS, buildingById } from './world';
+import type { PromiseData, Bait, Voter, GamePhase, SpotId, Lapp, GameEvent } from './types';
 
 export interface GameState {
   phase: GamePhase;
@@ -21,6 +21,8 @@ export interface GameState {
   nextVoterId: number;
   spawnAccMs: number;
   bitingVoterId: number | null;
+  lapp: Lapp | null;
+  lastEvent: GameEvent | null;
   lastCatch: { title: string; msekBase: number; sourceUrl: string; sourceDomain: string; released: boolean } | null;
 }
 
@@ -29,6 +31,12 @@ export interface CreateGameOpts {
   promises: PromiseData[];
   seed?: number;
   spotId?: SpotId;
+}
+
+/** Text for a catch/release event (shared shape with ui.ts catchLine; extracted in Task 7). */
+export function eventTextForCatch(c: { title: string; msekBase: number; sourceUrl: string; sourceDomain: string; released: boolean }): string {
+  if (c.released) return 'Släppt tillbaka: saknar rösträtt';
+  return `Fångst: ${c.title} · kostnad ${c.msekBase} msek · källa ${c.sourceDomain} (${c.sourceUrl})`;
 }
 
 export function createGame(opts: CreateGameOpts): GameState {
@@ -44,7 +52,22 @@ export function createGame(opts: CreateGameOpts): GameState {
     phase: 'playing', party: opts.party, tackle, voters: [],
     spotId, spotX: spot.x, spotY: spot.y,
     timeLeftMs: ROUND_MS, votes: 0, released: 0, rng, nextVoterId: 1, spawnAccMs: 0,
-    bitingVoterId: null, lastCatch: null,
+    bitingVoterId: null, lapp: null, lastEvent: null, lastCatch: null,
+  };
+}
+
+/** Cast the note (lapp) carrying the active bait. Clamped to the water bounds.
+ *  Without an active bait the state is returned unchanged. Pure. */
+export function castLapp(state: GameState, x: number, y: number): GameState {
+  if (state.phase !== 'playing') return state;
+  const bait = activeBait(state.tackle);
+  if (!bait) return state;
+  const cx = Math.max(0, Math.min(LOGICAL_W, x));
+  const cy = Math.max(0, Math.min(LOGICAL_H, y));
+  return {
+    ...state,
+    lapp: { x: cx, y: cy, baitId: bait.id },
+    lastEvent: { kind: 'cast', text: `Kastar: ${bait.title}` },
   };
 }
 
@@ -54,47 +77,60 @@ export function step(state: GameState, dtMs: number): GameState {
   if (timeLeftMs === 0) return { ...state, timeLeftMs: 0, phase: 'game_over' };
 
   const elapsed = ROUND_MS - timeLeftMs; // game clock for hook deadlines
-  const bait = activeBait(state.tackle);
+  const prevBait = activeBait(state.tackle);
+  const bait = prevBait;
 
-  // spawn
+  // spawn at a random building's door, capped at MAX_VOTERS (inside voters count)
   let { rng, nextVoterId, spawnAccMs, voters } = state;
   spawnAccMs += dtMs;
   const SPAWN_INTERVAL = 700;
   while (voters.length < MAX_VOTERS && spawnAccMs >= SPAWN_INTERVAL) {
     spawnAccMs -= SPAWN_INTERVAL;
-    voters = [...voters, spawnVoter(rng, nextVoterId++, spotById(state.spotId), spotById(state.spotId).bias)];
+    const b = rng.pick(BUILDINGS);
+    voters = [...voters, spawnAtBuilding(rng, nextVoterId++, b, elapsed)];
   }
 
-  // update voters
   let bitingVoterId = state.bitingVoterId;
+  let lastEvent = state.lastEvent;
+  const missedIds: number[] = [];
+
   voters = voters.map((v) => {
+    if (v.state === 'inside') {
+      if (!v.buildingId) return v;
+      return tryExit(v, buildingById(v.buildingId), rng, elapsed);
+    }
     if (v.state === 'biting') {
       if (bittenVoterEscapes(v, elapsed)) {
-        // escaped → return to wandering (clear stale id so later biters can register)
-        if (bitingVoterId === v.id) bitingVoterId = null;
-        return { ...v, state: 'wander' as const, biteDeadline: undefined };
+        // escape IS the miss: resolved after the map (voter leaves with the lapp)
+        missedIds.push(v.id);
       }
       return v;
     }
-    if (bait && v.attractToX !== undefined && v.attractToY !== undefined) {
-      // moving toward rod
+    if (v.state === 'toLapp') {
+      const lapp = state.lapp;
+      if (!lapp) {
+        return { ...v, state: 'wander' as const, attractToX: undefined, attractToY: undefined };
+      }
       const moved = moveAttracted(v, dtMs);
-      const arrived = Math.hypot(moved.x - state.spotX, moved.y - state.spotY) < 6;
-      if (arrived) {
-        // Cap to one biter at a time: only the first arrival bites, later
-        // arrivals hold nearby as toLapp until the hook frees up.
-        if (bitingVoterId !== null) return moved;
-        const b = beginBite(moved, elapsed);
-        bitingVoterId = b.id;
-        return b;
+      if (reachedLapp(moved, lapp) && bitingVoterId === null) {
+        const biter = beginBite(moved, elapsed);
+        bitingVoterId = biter.id;
+        lastEvent = { kind: 'napp', text: 'NAPP! Klicka nu!' };
+        return biter;
       }
       return moved;
     }
-    if (bait && matches(bait.category, v)) {
-      // begin attraction toward the rod
-      return { ...v, state: 'toLapp', attractToX: state.spotX, attractToY: state.spotY };
+    // wander: notice the lapp → head for a door → plain bounce-walk
+    const lapp = state.lapp;
+    if (lapp && bait) {
+      const noticed = noticeLapp(v, lapp, bait.category, rng, dtMs);
+      if (noticed.state !== 'wander') return noticed;
     }
-    // wander
+    const door = BUILDINGS.find((b) => Math.hypot(v.x - b.doorX, v.y - b.doorY) < 24);
+    if (door) {
+      const entered = tryEnter(v, door, rng, dtMs, elapsed);
+      if (entered.state !== 'wander') return entered;
+    }
     const nx = v.x + (v.vx * VOTER_SPEED * dtMs) / 1000;
     const ny = v.y + (v.vy * VOTER_SPEED * dtMs) / 1000;
     if (nx < 0 || nx > LOGICAL_W) return { ...v, vx: -v.vx };
@@ -102,13 +138,24 @@ export function step(state: GameState, dtMs: number): GameState {
     return { ...v, x: nx, y: ny };
   });
 
-  return { ...state, timeLeftMs, voters, rng, nextVoterId, spawnAccMs, bitingVoterId };
-}
+  let tackle = state.tackle;
+  let lapp = state.lapp;
+  if (missedIds.length > 0) {
+    // the biter took the lapp: wear the bait, remove the voter, clear the angling state
+    if (bait) tackle = tackle.map((b) => (b === bait ? resolveMiss(bait).bait : b));
+    voters = voters.filter((v) => !missedIds.includes(v.id));
+    lapp = null;
+    bitingVoterId = null;
+    lastEvent = { kind: 'miss', text: 'Missad — väljaren tog lappen och gick' };
+  }
 
-export function cast(state: GameState): GameState {
-  // attraction is assigned in step() when a matching voter wanders; cast is a
-  // no-op marker hook for input/animation. Kept for API symmetry and future use.
-  return state;
+  // the active bait changed this step (worn out) → announce the switch
+  const nowBait = activeBait(tackle);
+  if (prevBait && nowBait && prevBait.id !== nowBait.id && tackle.length > 0) {
+    lastEvent = { kind: 'baitWorn', text: `Betet slut: ${prevBait.title} — byter bete` };
+  }
+
+  return { ...state, timeLeftMs, voters, rng, nextVoterId, spawnAccMs, bitingVoterId, lapp, lastEvent, tackle };
 }
 
 export function onHookClick(state: GameState, nowMs: number): GameState {
@@ -122,20 +169,25 @@ export function onHookClick(state: GameState, nowMs: number): GameState {
   if (idx === -1) return { ...state, bitingVoterId: null };
   const v = state.voters[idx]!;
   const bait = activeBait(state.tackle);
-  let tackle = state.tackle;
-  let votes = state.votes;
-  let released = state.released;
-  let lastCatch = state.lastCatch;
-  if (hookSucceeds(v, nowMs) && bait) {
-    const res = resolveCatch(v);
-    votes += res.votes;
-    if (res.released) released += 1;
-    tackle = tackle.map((b) => (b === bait ? wearBait(b) : b));
-    lastCatch = { title: bait.title, msekBase: bait.msekBase, sourceUrl: bait.sourceUrl, sourceDomain: bait.sourceDomain, released: res.released };
-  }
   const voters = state.voters.filter((x) => x.id !== v.id);
-  return { ...state, voters, tackle, votes, released, bitingVoterId: null, lastCatch };
+  if (v.state === 'biting' && hookSucceeds(v, nowMs) && bait) {
+    const res = resolveCatch(v);
+    const tackle = state.tackle.map((b) => (b === bait ? wearBait(b) : b));
+    const lastCatch = { title: bait.title, msekBase: bait.msekBase, sourceUrl: bait.sourceUrl, sourceDomain: bait.sourceDomain, released: res.released };
+    return {
+      ...state, voters, tackle,
+      votes: state.votes + res.votes,
+      released: state.released + (res.released ? 1 : 0),
+      bitingVoterId: null, lapp: null, lastCatch,
+      lastEvent: { kind: res.released ? 'release' : 'catch', text: eventTextForCatch(lastCatch) },
+    };
+  }
+  // biting but outside the hook window → the same miss as an escaped biter
+  let tackle = state.tackle;
+  if (bait) tackle = tackle.map((b) => (b === bait ? resolveMiss(bait).bait : b));
+  return {
+    ...state, voters, tackle,
+    bitingVoterId: null, lapp: null,
+    lastEvent: { kind: 'miss', text: 'Missad — väljaren tog lappen och gick' },
+  };
 }
-
-// re-export for tests/consumers
-export { isWorn };
