@@ -1,6 +1,9 @@
 import type { Rng } from './rng';
-import { CATEGORIES, MINOR_PROBABILITY, LOGICAL_W, LOGICAL_H, VOTER_VARIANTS, type Category } from './constants';
-import type { Voter, VoterAge, VoterState, FishingSpot } from './types';
+import {
+  CATEGORIES, MINOR_PROBABILITY, LOGICAL_W, LOGICAL_H, VOTER_VARIANTS,
+  ENTER_PROB_PER_SEC, INSIDE_MIN_MS, INSIDE_MAX_MS, type Category,
+} from './constants';
+import type { Voter, VoterAge, VoterState, FishingSpot, Building } from './types';
 
 export function rollAge(rng: Rng): VoterAge {
   return rng.bool(MINOR_PROBABILITY) ? 'minor' : 'adult';
@@ -33,4 +36,50 @@ export function spawnVoter(rng: Rng, id: number, spot: FishingSpot, bias: Partia
   const state: VoterState = 'wander';
   const variant = Math.floor(rng.next() * VOTER_VARIANTS);
   return { id, x, y, vx: Math.cos(ang), vy: Math.sin(ang), category, age, state, variant };
+}
+
+function clamp(v: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, v));
+}
+
+/** A wander-state voter at the door may enter; probability ENTER_PROB_PER_SEC * dtSec. Pure. */
+export function tryEnter(v: Voter, b: Building, rng: Rng, dtMs: number, nowMs: number): Voter {
+  if (v.state !== 'wander') return v;
+  if (!rng.bool((ENTER_PROB_PER_SEC * dtMs) / 1000)) return v;
+  const stayMs = INSIDE_MIN_MS + rng.next() * (INSIDE_MAX_MS - INSIDE_MIN_MS);
+  return { ...v, state: 'inside', buildingId: b.id, insideUntil: nowMs + stayMs };
+}
+
+/** An inside voter steps out when nowMs >= insideUntil: at the door, category re-rolled
+ *  with the building's bias (category only — never party). Pure. */
+export function tryExit(v: Voter, b: Building, rng: Rng, nowMs: number): Voter {
+  if (v.state !== 'inside' || v.insideUntil === undefined || nowMs < v.insideUntil) return v;
+  return {
+    ...v,
+    state: 'wander',
+    x: b.doorX,
+    y: b.doorY,
+    category: chooseCategory(rng, b.bias),
+    buildingId: undefined,
+    insideUntil: undefined,
+  };
+}
+
+/** Spawn a voter at a building's door (± small jitter) with the building's category bias. Pure. */
+export function spawnAtBuilding(rng: Rng, id: number, b: Building, nowMs: number): Voter {
+  const x = clamp(b.doorX + (rng.next() * 20 - 10), 0, LOGICAL_W);
+  const y = clamp(b.doorY + (rng.next() * 14 - 7), 0, LOGICAL_H);
+  const ang = rng.next() * Math.PI * 2;
+  const state: VoterState = 'wander';
+  return {
+    id,
+    x,
+    y,
+    vx: Math.cos(ang),
+    vy: Math.sin(ang),
+    category: chooseCategory(rng, b.bias),
+    age: rollAge(rng),
+    state,
+    variant: rng.int(VOTER_VARIANTS),
+  };
 }
