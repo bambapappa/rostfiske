@@ -48,7 +48,7 @@ export function hex(color) {
   if (Array.isArray(color)) {
     return [color[0], color[1], color[2], color[3] ?? 255];
   }
-  const s = color.replace('#', '');
+  let s = color.replace('#', '');
   if (s.length === 3) s = s.split('').map((ch) => ch + ch).join('');
   if (s.length !== 6 && s.length !== 8) throw new Error(`bad color: ${color}`);
   return [
