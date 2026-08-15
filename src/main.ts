@@ -20,10 +20,11 @@ async function main(): Promise<void> {
   const overlay = document.getElementById('overlay');
   const tacklePanel = document.getElementById('tackle');
 
-  // Start flow: character select → game. All 8 parties presented identically.
+  // Start flow: character select → game. All 8 parties presented identically
+  // (same frame, same 48×72 pixel portrait, PARTIES order).
   const select = document.getElementById('select');
   if (select) {
-    showCharacterSelect(select, parties, (party: PartyCode) => {
+    showCharacterSelect(select, parties, sprites.get('politicians'), (party: PartyCode) => {
       select.textContent = '';
       start(party);
     });

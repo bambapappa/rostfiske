@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { formatSummary, catchLine, eventText, showCharacterSelect, renderTackle, CATEGORY_COLORS } from '../src/ui';
+import { formatSummary, catchLine, eventText, showCharacterSelect, drawLeaderPortrait, renderTackle, CATEGORY_COLORS } from '../src/ui';
 import { createGame, castLapp, onHookClick } from '../src/engine';
 import { PARTIES, CATEGORIES, type Category } from '../src/constants';
 import type { GameEvent, PartyData, Bait } from '../src/types';
@@ -62,8 +62,14 @@ interface FakeEl {
   type: string;
   className: string;
   style: Record<string, string>;
+  width: number;
+  height: number;
   children: FakeEl[];
   listeners: Record<string, Array<(e: unknown) => void>>;
+  /** recorded drawImage args (excluding the image), for canvas stubs */
+  draws: number[][];
+  imageSmoothingEnabled: boolean;
+  getContext(): { imageSmoothingEnabled: boolean; clearRect(): void; drawImage(img: unknown, ...args: number[]): void };
   appendChild(c: FakeEl): FakeEl;
   replaceChildren(): void;
   addEventListener(t: string, fn: (e: unknown) => void): void;
@@ -72,12 +78,39 @@ interface FakeEl {
 function fakeEl(tag: string): FakeEl {
   const el: FakeEl = {
     tag, textContent: '', title: '', type: '', className: '',
-    style: {}, children: [], listeners: {},
+    style: {}, width: 0, height: 0, children: [], listeners: {},
+    draws: [], imageSmoothingEnabled: true,
+    getContext() {
+      return {
+        clearRect() { el.draws.length = 0; },
+        drawImage(_img: unknown, ...args: number[]) { el.draws.push(args); },
+        get imageSmoothingEnabled() { return el.imageSmoothingEnabled; },
+        set imageSmoothingEnabled(v: boolean) { el.imageSmoothingEnabled = v; },
+      };
+    },
     appendChild(c) { el.children.push(c); return el; },
     replaceChildren() { el.children.length = 0; },
     addEventListener(t, fn) { (el.listeners[t] ??= []).push(fn); },
   };
   return el;
+}
+
+/** A stub politicians sheet: any object with width/height satisfies drawImage's
+ *  image argument in the fake ctx. */
+const SHEET_STUB = { width: 64, height: 48 } as unknown as HTMLImageElement;
+
+/** The party-name span child of a select button. */
+function nameSpan(btn: FakeEl): FakeEl {
+  const span = btn.children.find((c) => c.tag === 'span');
+  if (!span) throw new Error('button has no name span');
+  return span;
+}
+
+/** The portrait canvas child of a select button. */
+function portraitCanvas(btn: FakeEl): FakeEl {
+  const c = btn.children.find((c) => c.tag === 'canvas');
+  if (!c) throw new Error('button has no portrait canvas');
+  return c;
 }
 
 const PARTIES_TEST: PartyData[] = [
@@ -103,12 +136,12 @@ describe('showCharacterSelect', () => {
 
   it('renders one identically-styled button per party, in given (PARTIES) order', () => {
     const container = fakeEl('div');
-    showCharacterSelect(container as unknown as HTMLElement, PARTIES_TEST, () => {});
+    showCharacterSelect(container as unknown as HTMLElement, PARTIES_TEST, undefined, () => {});
     expect(container.children).toHaveLength(PARTIES_TEST.length);
     PARTIES_TEST.forEach((p, i) => {
       const btn = container.children[i]!;
       expect(btn.tag).toBe('button');
-      expect(btn.textContent).toBe(p.name); // party name, no winner framing
+      expect(nameSpan(btn).textContent).toBe(p.name); // party name, no winner framing
       expect(btn.style.borderColor).toBe(p.color); // party-color border
       expect(btn.className).toBe(container.children[0]!.className); // identical framing
     });
@@ -119,7 +152,7 @@ describe('showCharacterSelect', () => {
   it('invokes onPick with the party code on click', () => {
     const container = fakeEl('div');
     const picked: PartyCode[] = [];
-    showCharacterSelect(container as unknown as HTMLElement, PARTIES_TEST, (c) => picked.push(c));
+    showCharacterSelect(container as unknown as HTMLElement, PARTIES_TEST, undefined, (c) => picked.push(c));
     const btn = container.children[3]!; // 'c'
     btn.listeners['click']![0]!({});
     expect(picked).toEqual(['c']);
@@ -128,8 +161,53 @@ describe('showCharacterSelect', () => {
   it('enforces PARTIES order even when the caller passes a shuffled array (neutrality)', () => {
     const shuffled = [...PARTIES_TEST].reverse();
     const container = fakeEl('div');
-    showCharacterSelect(container as unknown as HTMLElement, shuffled, () => {});
-    expect(container.children.map((b) => b.textContent)).toEqual([...PARTIES.map((code) => PARTIES_TEST.find((p) => p.code === code)!.name)]);
+    showCharacterSelect(container as unknown as HTMLElement, shuffled, undefined, () => {});
+    expect(container.children.map((b) => nameSpan(b).textContent)).toEqual([...PARTIES.map((code) => PARTIES_TEST.find((p) => p.code === code)!.name)]);
+  });
+
+  it('every button contains a 48×72 portrait canvas beside the name (identical structure)', () => {
+    const container = fakeEl('div');
+    showCharacterSelect(container as unknown as HTMLElement, PARTIES_TEST, SHEET_STUB, () => {});
+    PARTIES_TEST.forEach((p, i) => {
+      const btn = container.children[i]!;
+      const canvas = portraitCanvas(btn);
+      expect(canvas.width).toBe(48); // LEADER_W × 3
+      expect(canvas.height).toBe(72); // LEADER_H × 3
+      expect(nameSpan(btn).textContent).toBe(p.name);
+      // the party's OWN cell was drawn onto the canvas (source rect from the sheet)
+      const idx = PARTIES.indexOf(p.code);
+      expect(canvas.draws).toEqual([[(idx % 4) * 16, Math.floor(idx / 4) * 24, 16, 24, 0, 0, 48, 72]]);
+      expect(canvas.imageSmoothingEnabled).toBe(false); // crisp pixels, no blur
+    });
+  });
+
+  it('renders the same canvas+name structure when the sheet is missing (asset fallback)', () => {
+    const container = fakeEl('div');
+    showCharacterSelect(container as unknown as HTMLElement, PARTIES_TEST, undefined, () => {});
+    PARTIES_TEST.forEach((_, i) => {
+      expect(portraitCanvas(container.children[i]!).draws).toEqual([]); // blank, not a crash
+      expect(nameSpan(container.children[i]!)).toBeTruthy();
+    });
+  });
+});
+
+describe('drawLeaderPortrait (v1.2)', () => {
+  const img = SHEET_STUB;
+
+  it.each([...PARTIES])('draws party %s from its own sheet cell, scaled ×3, unsmoothed', (party) => {
+    const canvas = fakeEl('canvas');
+    drawLeaderPortrait(canvas as unknown as HTMLCanvasElement, img, party);
+    const idx = PARTIES.indexOf(party);
+    expect(canvas.draws).toEqual([
+      [(idx % 4) * 16, Math.floor(idx / 4) * 24, 16, 24, 0, 0, 48, 72],
+    ]);
+    expect(canvas.imageSmoothingEnabled).toBe(false);
+  });
+
+  it('mp is the last cell: sx 48, sy 24', () => {
+    const canvas = fakeEl('canvas');
+    drawLeaderPortrait(canvas as unknown as HTMLCanvasElement, img, 'mp');
+    expect(canvas.draws[0]).toEqual([48, 24, 16, 24, 0, 0, 48, 72]);
   });
 });
 

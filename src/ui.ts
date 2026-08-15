@@ -1,5 +1,5 @@
 import type { GameState } from './engine';
-import { PARTIES, type Category, type PartyCode } from './constants';
+import { PARTIES, LEADER_W, LEADER_H, type Category, type PartyCode } from './constants';
 import type { GameEvent, PartyData, Bait } from './types';
 
 /** Category → chip color (pixel-palette hex). Single source of truth: the
@@ -38,11 +38,33 @@ export function eventText(e: GameEvent): string {
   return e.text;
 }
 
-/** Character-select grid: one identically-framed button per party, party-color
- *  border + party name. Click → onPick. The grid is ALWAYS rendered in PARTIES
- *  order regardless of the caller's array order (neutrality contract: identical
- *  treatment, fixed presentation order). */
-export function showCharacterSelect(container: HTMLElement, parties: PartyData[], onPick: (p: PartyCode) => void): void {
+/** Draw a party's leader caricature cell from the politicians sheet onto a
+ *  48×72 canvas (16×24 cell scaled ×3) — pixelated, no smoothing. The cell is
+ *  the party's own position in the sheet (PARTIES order, 4 columns × 2 rows).
+ *  Portrait = identity, never an advantage: every party gets the same size,
+ *  scale and dignified base sprite (see public/sprites/README.md). */
+export function drawLeaderPortrait(canvas: HTMLCanvasElement, img: HTMLImageElement, party: PartyCode): void {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const idx = PARTIES.indexOf(party);
+  const sx = (idx % 4) * LEADER_W;
+  const sy = Math.floor(idx / 4) * LEADER_H;
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, sx, sy, LEADER_W, LEADER_H, 0, 0, LEADER_W * 3, LEADER_H * 3);
+}
+
+/** Character-select grid: one identically-framed button per party — party-color
+ *  border, the party's pixel portrait (48×72 canvas via drawLeaderPortrait) and
+ *  the party name. Click → onPick. The grid is ALWAYS rendered in PARTIES order
+ *  regardless of the caller's array order (neutrality contract: identical
+ *  treatment, fixed presentation order).
+ *
+ *  Signature: (container, parties, sheet, onPick) where sheet is the loaded
+ *  politicians sheet (loadSprites().get('politicians')). It may be undefined
+ *  when the asset failed to load — every button still gets its (blank) canvas
+ *  so the 8 options stay identical in structure. */
+export function showCharacterSelect(container: HTMLElement, parties: PartyData[], sheet: HTMLImageElement | undefined, onPick: (p: PartyCode) => void): void {
   container.textContent = '';
   const ordered = [...parties].sort(
     (a, b) => PARTIES.indexOf(a.code) - PARTIES.indexOf(b.code),
@@ -51,9 +73,19 @@ export function showCharacterSelect(container: HTMLElement, parties: PartyData[]
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'party-option';
-    btn.textContent = p.name;
     btn.title = p.name;
     btn.style.borderColor = p.color;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = LEADER_W * 3;
+    canvas.height = LEADER_H * 3;
+    if (sheet) drawLeaderPortrait(canvas, sheet, p.code);
+
+    const name = document.createElement('span');
+    name.textContent = p.name;
+
+    btn.appendChild(canvas);
+    btn.appendChild(name);
     btn.addEventListener('click', () => onPick(p.code));
     container.appendChild(btn);
   }
