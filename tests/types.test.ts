@@ -14,7 +14,7 @@ describe('domain types', () => {
   });
 
   it('a voter has a category and an age', () => {
-    const v: Voter = { id: 1, x: 0, y: 0, vx: 0, vy: 0, category: 'skatter', age: 'adult', state: 'wander', variant: 0 };
+    const v: Voter = { id: 1, x: 0, y: 0, speed: 13, category: 'skatter', age: 'adult', state: 'wander', variant: 0 };
     expect(v.age).toBe<'adult'|'minor'>('adult');
   });
 
@@ -24,7 +24,7 @@ describe('domain types', () => {
   });
 
   it('voter kan vara inside', () => {
-    const v: Voter = { id: 1, x: 0, y: 0, vx: 0, vy: 0, category: 'skatter', age: 'adult', state: 'inside', variant: 3 };
+    const v: Voter = { id: 1, x: 0, y: 0, speed: 13, category: 'skatter', age: 'adult', state: 'inside', variant: 3 };
     expect(v.state).toBe('inside');
   });
 

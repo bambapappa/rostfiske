@@ -44,7 +44,7 @@ const parties: PartyData[] = [{ code: 's', name: 'S', color: '#E8112d', colorTex
 
 function voter(partial: Partial<Voter>): Voter {
   return {
-    id: 1, x: 100, y: 100, vx: 1, vy: 0, category: 'välfärd', age: 'adult',
+    id: 1, x: 100, y: 100, speed: 13, category: 'välfärd', age: 'adult',
     state: 'wander', variant: 0, ...partial,
   };
 }

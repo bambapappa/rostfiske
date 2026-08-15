@@ -1,7 +1,7 @@
 import { makeRng, type Rng } from './rng';
-import { ROUND_MS, MAX_VOTERS, TACKLE_SIZE, VOTER_SPEED, LOGICAL_W, LOGICAL_H, CAST_RADIUS, type PartyCode } from './constants';
+import { ROUND_MS, MAX_VOTERS, TACKLE_SIZE, CAST_RADIUS, LOGICAL_W, LOGICAL_H, type PartyCode } from './constants';
 import { buildTackle, activeBait, baitById, wearBait } from './bait';
-import { tryEnter, tryExit, spawnAtBuilding, blockedMove } from './voter';
+import { tryEnter, tryExit, spawnAtBuilding, wanderStep } from './voter';
 import { beginBite, hookSucceeds, bittenVoterEscapes, resolveCatch, resolveMiss, moveAttracted, noticeLapp, reachedLapp } from './fishing';
 import { spotById, BUILDINGS, buildingById, buildingRects, pushOut } from './world';
 import type { PromiseData, Bait, Voter, GamePhase, SpotId, Lapp, GameEvent } from './types';
@@ -139,7 +139,7 @@ export function step(state: GameState, dtMs: number): GameState {
       }
       return moved;
     }
-    // wander: notice the lapp → head for a door → plain bounce-walk
+    // wander: notice the lapp → head for a door → natural wandering
     const lapp = state.lapp;
     if (lapp) {
       // the lapp attracts by its OWN cast bait (baitId), never by the active slot
@@ -154,19 +154,9 @@ export function step(state: GameState, dtMs: number): GameState {
       const entered = tryEnter(v, door, rng, dtMs, elapsed);
       if (entered.state !== 'wander') return entered;
     }
-    const nx = v.x + (v.vx * VOTER_SPEED * dtMs) / 1000;
-    const ny = v.y + (v.vy * VOTER_SPEED * dtMs) / 1000;
-    // v1.2: building footprints block movement (door zones excepted) —
-    // a blocked step keeps the position and re-chooses a random heading.
-    // Task 3 replaces this with natural turning; here it just avoids walking through houses.
-    const move = blockedMove(v, nx, ny, BUILDINGS);
-    if (move.blocked) {
-      const ang = rng.next() * Math.PI * 2;
-      return { ...v, vx: Math.cos(ang), vy: Math.sin(ang) };
-    }
-    if (move.x < 0 || move.x > LOGICAL_W) return { ...v, vx: -v.vx };
-    if (move.y < 0 || move.y > LOGICAL_H) return { ...v, vy: -v.vy };
-    return { ...v, x: move.x, y: move.y };
+    // v1.2: per-voter speed, gradual turns, idle pauses, soft edge turns,
+    // building collision (door zones excepted) — all inside wanderStep
+    return wanderStep(v, dtMs, elapsed, rng, BUILDINGS);
   });
 
   let tackle = state.tackle;

@@ -4,7 +4,7 @@ import { HOOK_WINDOW_MS, NOTICE_RADIUS, NOTICE_PROB_PER_SEC, PICKUP_DIST } from 
 import type { Voter, Lapp, Bait } from '../src/types';
 import { makeRng } from '../src/rng';
 
-const wandering = (over: Partial<Voter> = {}): Voter => ({ id: 1, x: 0, y: 0, vx: 1, vy: 0, category: 'välfärd', age: 'adult', state: 'wander', variant: 0, ...over });
+const wandering = (over: Partial<Voter> = {}): Voter => ({ id: 1, x: 0, y: 0, speed: 13, category: 'välfärd', age: 'adult', state: 'wander', variant: 0, ...over });
 const lappAt = (x: number, y: number): Lapp => ({ x, y, baitId: 'b-1' });
 
 describe('hook window', () => {

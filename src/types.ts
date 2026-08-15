@@ -39,7 +39,12 @@ export type VoterState = 'wander' | 'toLapp' | 'biting' | 'inside';
 
 export interface Voter {
   id: number;
-  x: number; y: number; vx: number; vy: number;
+  x: number; y: number;
+  speed: number; // px/s — individual wander speed, drawn at spawn
+  heading?: number; // radians, current facing (wander model; [0, 2π))
+  headingTarget?: number; // radians — heading converges here gradually
+  nextTurnAt?: number; // ms (game clock) when a new headingTarget is drawn
+  idleUntil?: number; // ms (game clock) while paused ("tittar i skyltfönster")
   category: Category;
   age: VoterAge;
   state: VoterState;

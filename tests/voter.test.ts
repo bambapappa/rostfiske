@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { makeRng } from '../src/rng';
-import { rollAge, chooseCategory, matches, spawnVoter, tryEnter, tryExit, spawnAtBuilding, blockedMove } from '../src/voter';
+import { rollAge, chooseCategory, matches, spawnVoter, tryEnter, tryExit, spawnAtBuilding, blockedMove, wanderStep } from '../src/voter';
 import { BUILDINGS, buildingById } from '../src/world';
 import {
   MINOR_PROBABILITY, LOGICAL_W, LOGICAL_H,
   ENTER_PROB_PER_SEC, INSIDE_MIN_MS, INSIDE_MAX_MS, VOTER_VARIANTS,
+  VOTER_SPEED_MIN, VOTER_SPEED_MAX, TURN_INTERVAL_MIN_MS, TURN_INTERVAL_MAX_MS,
+  IDLE_MIN_MS, IDLE_MAX_MS, TURN_RATE_MAX,
 } from '../src/constants';
 import type { Building, FishingSpot, Voter } from '../src/types';
 
@@ -53,9 +55,17 @@ const skolan: Building = { id: 'skolan', name: 'Skolan', x: 56, y: 40, doorX: 56
 
 function makeVoter(overrides: Partial<Voter> = {}): Voter {
   return {
-    id: 1, x: 50, y: 50, vx: 1, vy: 0, category: 'övrigt',
+    id: 1, x: 50, y: 50, speed: 13, category: 'övrigt',
     age: 'adult', state: 'wander', variant: 0, ...overrides,
   };
+}
+
+/** shortest signed angular difference, wrapped to [-π, π] */
+function angDiff(a: number): number {
+  let d = a % (Math.PI * 2);
+  if (d > Math.PI) d -= Math.PI * 2;
+  if (d < -Math.PI) d += Math.PI * 2;
+  return d;
 }
 
 describe('tryEnter', () => {
@@ -198,7 +208,7 @@ describe('spawnAtBuilding', () => {
 
 describe('blockedMove (v1.2)', () => {
   const skolan = buildingById('skolan'); // rect 32..80 x, 24..56 y; door (56,56)
-  const base: Voter = { id: 1, x: 200, y: 120, vx: 1, vy: 0, category: 'välfärd', age: 'adult', state: 'wander', variant: 0 };
+  const base: Voter = { id: 1, x: 200, y: 120, speed: 13, category: 'välfärd', age: 'adult', state: 'wander', variant: 0 };
 
   it('returns the new position, blocked=false, when the target is free', () => {
     const r = blockedMove(base, 205, 120, BUILDINGS);
@@ -224,5 +234,135 @@ describe('blockedMove (v1.2)', () => {
     // (40,45) is strictly interior but ~19.4px from the door — no exception
     const r = blockedMove(v, 40, 45, BUILDINGS);
     expect(r).toEqual({ x: 40, y: 60, blocked: true });
+  });
+});
+
+describe('wanderStep (v1.2 natural wandering)', () => {
+  // open space at torget — no footprint or door zone interferes with movement
+  const OPEN = { x: 200, y: 120 };
+
+  it('spawns give each voter an individual speed in [VOTER_SPEED_MIN, VOTER_SPEED_MAX]', () => {
+    const r = makeRng(5);
+    for (let i = 0; i < 500; i++) {
+      const v = spawnAtBuilding(r, i, skolan, 0);
+      expect(v.speed).toBeGreaterThanOrEqual(VOTER_SPEED_MIN);
+      expect(v.speed).toBeLessThanOrEqual(VOTER_SPEED_MAX);
+    }
+    const v = spawnVoter(makeRng(9), 1, flatSpot, {});
+    expect(v.speed).toBeGreaterThanOrEqual(VOTER_SPEED_MIN);
+    expect(v.speed).toBeLessThanOrEqual(VOTER_SPEED_MAX);
+  });
+
+  it('moves along its heading at its own speed when the target is aligned', () => {
+    // heading == headingTarget → no turn; p(idle) = 0.08/s · 0.5 s = 0.04 —
+    // seed 2 draws false on that roll (verified deterministic for this stream)
+    const v0 = makeVoter({ ...OPEN, heading: 0.3, headingTarget: 0.3, nextTurnAt: 1e9, speed: 12 });
+    const v1 = wanderStep(v0, 500, 0, makeRng(2), BUILDINGS);
+    expect(v1.x - OPEN.x).toBeCloseTo(Math.cos(0.3) * 6, 5);
+    expect(v1.y - OPEN.y).toBeCloseTo(Math.sin(0.3) * 6, 5);
+  });
+
+  it('turns gradually toward the target — never a 180° jump', () => {
+    let v = makeVoter({ ...OPEN, heading: 0, headingTarget: Math.PI, nextTurnAt: 1_000_000, speed: 13 });
+    const rng = makeRng(3);
+    let prev = 0;
+    for (let i = 0; i < 10; i++) {
+      v = wanderStep(v, 400, 10_000 + i * 400, rng, BUILDINGS);
+      // invariant: per-step turn is capped by TURN_RATE_MAX · dt — a full π
+      // reversal in one step would violate this
+      expect(Math.abs(angDiff(v.heading! - prev))).toBeLessThanOrEqual(TURN_RATE_MAX * 0.4 + 1e-9);
+      prev = v.heading!;
+    }
+    // 4 s of turning at ≥ 2.5 rad/s capacity converges to the π target
+    expect(Math.abs(angDiff(Math.PI - prev))).toBeLessThan(0.5);
+  });
+
+  it('re-targets on schedule: new random headingTarget and nextTurnAt +1–3 s', () => {
+    const v0 = makeVoter({ ...OPEN, heading: 0, headingTarget: 0, nextTurnAt: 5_000, speed: 12 });
+    // p(idle) = 0.008 with dt=100 ms — seed 4 draws false (verified deterministic)
+    const v1 = wanderStep(v0, 100, 5_000, makeRng(4), BUILDINGS);
+    expect(v1.headingTarget).not.toBe(0); // new random target drawn
+    expect(v1.nextTurnAt!).toBeGreaterThanOrEqual(5_000 + TURN_INTERVAL_MIN_MS);
+    expect(v1.nextTurnAt!).toBeLessThanOrEqual(5_000 + TURN_INTERVAL_MAX_MS);
+  });
+
+  it('an active idle pause freezes the voter completely', () => {
+    const v0 = makeVoter({ ...OPEN, heading: 0, headingTarget: 0, nextTurnAt: 1e9, speed: 12, idleUntil: 10_000 });
+    const v1 = wanderStep(v0, 500, 9_999, makeRng(1), BUILDINGS);
+    expect(v1).toBe(v0); // nowMs < idleUntil → untouched
+  });
+
+  it('idle starts occasionally (0.5–1.5 s) without moving', () => {
+    // large dt saturates the probability: 0.08/s · 10 s = 0.8 per seed
+    let started = 0;
+    for (let seed = 1; seed <= 20; seed++) {
+      const v0 = makeVoter({ ...OPEN, heading: 0, headingTarget: 0, nextTurnAt: 1e9, speed: 12 });
+      const v1 = wanderStep(v0, 10_000, 0, makeRng(seed), BUILDINGS);
+      if (v1.idleUntil !== undefined) {
+        started++;
+        expect(v1.idleUntil).toBeGreaterThanOrEqual(IDLE_MIN_MS);
+        expect(v1.idleUntil).toBeLessThanOrEqual(IDLE_MAX_MS);
+        expect(v1.x).toBe(OPEN.x); // position untouched while pausing
+        expect(v1.y).toBe(OPEN.y);
+      }
+    }
+    expect(started).toBeGreaterThan(10); // p = 0.8 → ~16 of 20 expected
+  });
+
+  it('idle clears after idleUntil: wandering resumes', () => {
+    const v0 = makeVoter({ ...OPEN, heading: 0.1, headingTarget: 0.1, nextTurnAt: 1e9, speed: 14, idleUntil: 5_000 });
+    // nowMs past idleUntil; p(idle restart) = 0.08/s · 0.5 s = 0.04 — seed 6
+    // draws false (verified deterministic)
+    const v1 = wanderStep(v0, 500, 5_500, makeRng(6), BUILDINGS);
+    expect(v1.idleUntil).toBeUndefined();
+    expect(v1.x).toBeGreaterThan(OPEN.x); // moving again
+  });
+
+  it('a blocked step keeps the position and picks a new heading target', () => {
+    // stationen footprint 168..216 x, 8..40 y, door (192,40): start below its
+    // right part heading straight up — 2 s · 16 px/s lands deep inside
+    let blockedCount = 0;
+    for (let seed = 1; seed <= 30; seed++) {
+      const v0 = makeVoter({
+        x: 214, y: 56, heading: -Math.PI / 2, headingTarget: -Math.PI / 2,
+        nextTurnAt: 1e9, speed: 16,
+      });
+      const v1 = wanderStep(v0, 2_000, 0, makeRng(seed), BUILDINGS);
+      expect(v1.state).toBe('wander');
+      expect(v1.x).toBe(214); // never walks through the house (idle or blocked)
+      expect(v1.y).toBe(56);
+      if (v1.headingTarget !== -Math.PI / 2) blockedCount++; // blocked → re-target
+    }
+    expect(blockedCount).toBeGreaterThan(15); // p(idle eats the step) = 0.16
+  });
+
+  it('bounds: soft turn away from the edge instead of a hard bounce', () => {
+    // heading straight right at the right edge — the step must stay on screen
+    // and the target must be reflected back toward it
+    let turned = 0;
+    for (let seed = 1; seed <= 20; seed++) {
+      const v0 = makeVoter({ x: LOGICAL_W - 1, y: 104, heading: 0, headingTarget: 0, nextTurnAt: 1e9, speed: 16 });
+      const v1 = wanderStep(v0, 1_000, 0, makeRng(seed), BUILDINGS);
+      expect(v1.x).toBeLessThanOrEqual(LOGICAL_W);
+      if (Math.cos(v1.headingTarget!) < 0) turned++;
+    }
+    expect(turned).toBeGreaterThan(10); // reflection unless idle ate the step
+  });
+
+  it('long runs never leave the screen', () => {
+    for (let seed = 1; seed <= 10; seed++) {
+      let v = makeVoter({
+        x: 190, y: 100, heading: (seed * 0.7) % (Math.PI * 2),
+        headingTarget: (seed * 0.7) % (Math.PI * 2), nextTurnAt: 0, speed: 16,
+      });
+      const rng = makeRng(seed * 31 + 7);
+      for (let i = 0; i < 600; i++) { // 60 s of wandering at 10 fps
+        v = wanderStep(v, 100, i * 100, rng, BUILDINGS);
+        expect(v.x).toBeGreaterThanOrEqual(0);
+        expect(v.x).toBeLessThanOrEqual(LOGICAL_W);
+        expect(v.y).toBeGreaterThanOrEqual(0);
+        expect(v.y).toBeLessThanOrEqual(LOGICAL_H);
+      }
+    }
   });
 });

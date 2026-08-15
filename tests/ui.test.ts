@@ -146,7 +146,7 @@ describe('eventText over engine-produced events (spec strings at their source)',
     const g = createGame({ party: 's', promises, seed: 1 });
     const bait = g.tackle[0]!;
     const elapsed = 60_000;
-    const biting = { ...g, timeLeftMs: 180_000 - elapsed, voters: [{ id: 9, x: 100, y: 100, vx: 0, vy: 0, category: 'välfärd' as const, age: 'adult' as const, state: 'biting' as const, variant: 0, biteDeadline: elapsed + 650 }], bitingVoterId: 9 };
+    const biting = { ...g, timeLeftMs: 180_000 - elapsed, voters: [{ id: 9, x: 100, y: 100, speed: 13, category: 'välfärd' as const, age: 'adult' as const, state: 'biting' as const, variant: 0, biteDeadline: elapsed + 650 }], bitingVoterId: 9 };
     const s = onHookClick(biting, elapsed);
     expect(s.lastEvent?.kind).toBe('catch');
     expect(eventText(s.lastEvent!)).toBe(`Fångst: ${bait.title} · kostnad ${bait.msekBase} msek · källa ex.se (https://ex.se/p/${promises.findIndex((p) => p.title === bait.title)})`);

@@ -14,7 +14,15 @@ export const BAIT_DURABILITY = 6;
 export const TACKLE_SIZE = 5;
 export const MINOR_PROBABILITY = 0.15;
 export const MAX_VOTERS = 24;
-export const VOTER_SPEED = 18;
+// v1.2 natural wandering: per-voter speed drawn at spawn in [MIN, MAX]
+export const VOTER_SPEED_MIN = 10;
+export const VOTER_SPEED_MAX = 16;
+export const TURN_INTERVAL_MIN_MS = 1000; // new headingTarget drawn this often
+export const TURN_INTERVAL_MAX_MS = 3000;
+export const TURN_RATE_MAX = 2.5; // rad/s: gradual turn, never an instant reversal
+export const IDLE_PROB_PER_SEC = 0.08; // "tittar i skyltfönster" pause chance
+export const IDLE_MIN_MS = 500;
+export const IDLE_MAX_MS = 1500;
 export const ATTRACT_SPEED = 34;
 export const MIN_PROMISES_PER_PARTY = 5;
 

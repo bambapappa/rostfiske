@@ -10,7 +10,7 @@ const PROMISES = ['välfärd','skatter','övrigt','migration','försvar','infras
 const mk = (seed = 1) => createGame({ party: 's', promises: PROMISES, seed });
 
 const voter = (over: Partial<Voter> & { id: number }): Voter => ({
-  x: 200, y: 120, vx: 1, vy: 0, category: 'välfärd', age: 'adult',
+  x: 200, y: 120, speed: 13, category: 'välfärd', age: 'adult',
   state: 'wander', variant: 0, ...over,
 });
 
@@ -441,19 +441,31 @@ describe('time + game over', () => {
   });
 });
 
-describe('building collision (v1.2)', () => {
-  it('a wanderer stepping into a footprint keeps its position that frame, stays wander and re-chooses heading', () => {
+describe('building collision + natural wandering (v1.2)', () => {
+  it('a wanderer stepping into a footprint keeps its position that frame, stays wander', () => {
     const g = mk();
     // stationen footprint: 168..216 x, 8..40 y; door (192,40).
-    // Voter just below its right part, heading up: one second of VOTER_SPEED (18px)
-    // lands at (214,38) — interior, 22px from the door (outside door zone
-    // r=10 and outside the 24px tryEnter proximity).
-    const s = step({ ...g, voters: [voter({ id: 1, x: 214, y: 56, vx: 0, vy: -1 })] }, 1000);
+    // Voter just below its right part, heading straight up at max wander
+    // speed: 2 s · 16 px/s would land at (214,24) — interior, ~22 px from the
+    // door (outside door zone r=10 and outside the 24 px tryEnter proximity).
+    const s = step({ ...g, voters: [voter({ id: 1, x: 214, y: 56, heading: -Math.PI / 2, headingTarget: -Math.PI / 2, nextTurnAt: 1e9, speed: 16 })] }, 2_000);
     const v = s.voters.find((x) => x.id === 1)!;
     expect(v.state).toBe('wander');
-    expect(v.x).toBe(214);
+    expect(v.x).toBe(214); // blocked (or idle): never walks through the house
     expect(v.y).toBe(56);
-    expect(v.vx === 0 && v.vy === -1).toBe(false); // new random heading chosen
+  });
+
+  it('spawned wanderers stay on screen over long play', () => {
+    let g = mk(21);
+    for (let i = 0; i < 400; i++) {
+      g = step(g, 100);
+      for (const v of g.voters) {
+        expect(v.x).toBeGreaterThanOrEqual(0);
+        expect(v.x).toBeLessThanOrEqual(LOGICAL_W);
+        expect(v.y).toBeGreaterThanOrEqual(0);
+        expect(v.y).toBeLessThanOrEqual(LOGICAL_H);
+      }
+    }
   });
 
   it('castLapp aimed inside a footprint lands outside the rect', () => {
