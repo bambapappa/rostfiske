@@ -31,6 +31,7 @@ function stubCtx(): { ctx: CanvasRenderingContext2D; texts: string[]; textCalls:
     },
     fillText: (s: string, x: number, y: number) => { texts.push(s); textCalls.push({ text: s, x, y }); },
     beginPath: () => {}, moveTo: () => {}, lineTo: () => {},
+    quadraticCurveTo: () => {},
     arc: (x: number, y: number, r: number) => { arcCalls.push({ x, y, r }); },
     fill: () => {},
     stroke: () => {},
@@ -214,5 +215,61 @@ describe('drawScene', () => {
         expect(Math.abs(buildingLabel!.y - (building.doorY + 8))).toBeLessThanOrEqual(1);
       }
     }
+  });
+
+  it('renders float_text and ripple particles with coordinates and text (v1.3)', () => {
+    const g = {
+      ...createGame({ party: 's', promises }),
+      particles: [
+        { id: 1, x: 120, y: 130, text: '+1', color: '#e8112d', lifeMs: 200, maxLifeMs: 1000, kind: 'float_text' as const },
+        { id: 2, x: 180, y: 90, text: 'Saknar rösträtt', color: '#aaaaaa', lifeMs: 100, maxLifeMs: 1200, kind: 'float_text' as const },
+        { id: 3, x: 220, y: 140, text: '', color: 'rgba(255,255,255,0.7)', lifeMs: 250, maxLifeMs: 500, kind: 'ripple' as const, radius: 2, maxRadius: 18 },
+      ],
+    };
+    const { ctx, texts, arcCalls } = stubCtx();
+    expect(() => drawScene(ctx, g, new Map(), parties, 0)).not.toThrow();
+    expect(texts).toContain('+1');
+    expect(texts).toContain('Saknar rösträtt');
+    // Ripple should have produced an arc call centered at (220, 140)
+    const rippleArc = arcCalls.find((a) => a.x === 220 && a.y === 140);
+    expect(rippleArc).toBeDefined();
+    // At lifeMs 250 / maxLifeMs 500 (halfway), radius should be 2 + (18-2)*0.5 = 10
+    expect(rippleArc!.r).toBeCloseTo(10, 1);
+  });
+
+  it('renders awareness cue (?) above voters in toLapp state (v1.3)', () => {
+    const toLappVoter = voter({ id: 55, x: 140, y: 110, state: 'toLapp', attractToX: 200, attractToY: 120 });
+    const g = {
+      ...createGame({ party: 's', promises }),
+      voters: [toLappVoter],
+    };
+    const { ctx, texts, textCalls } = stubCtx();
+    drawScene(ctx, g, new Map(), parties, 0);
+    expect(texts).toContain('?');
+    const cue = textCalls.find((t) => t.text === '?');
+    expect(cue).toBeDefined();
+    expect(cue!.x).toBe(140);
+    expect(cue!.y).toBeLessThan(110); // positioned above the voter's head
+  });
+
+  it('renders parabolic cast flight trajectory when flightProgress < 1 (v1.3)', () => {
+    const g = {
+      ...createGame({ party: 's', promises }),
+      lapp: {
+        x: 200,
+        y: 100,
+        baitId: 'p0',
+        startX: 100,
+        startY: 150,
+        flightProgress: 0.5,
+        flightDurationMs: 250,
+      },
+    };
+    const { ctx, rects } = stubCtx();
+    expect(() => drawScene(ctx, g, new Map(), parties, 0)).not.toThrow();
+    // At progress 0.5: lx = 100 + (200-100)*0.5 = 150, linearY = 150 + (100-150)*0.5 = 125, arcHeight = sin(0.5*PI)*28 = 28 -> ly = 97
+    // Paper rect rendered at Math.round(lx)-2 = 148, Math.round(ly)-3 = 94
+    const flyingPaper = rects.find((r) => Math.abs(r.x - 148) <= 1 && Math.abs(r.y - 94) <= 1 && r.w === 5 && r.h === 4);
+    expect(flyingPaper).toBeDefined();
   });
 });

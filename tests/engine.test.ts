@@ -482,3 +482,105 @@ describe('building collision + natural wandering (v1.2)', () => {
     expect(s.lapp!.y).toBe(216);
   });
 });
+
+describe('visual particles and cast flight trajectory (v1.3)', () => {
+  it('spawns a ripple particle at landing coords and starts flight progress at 0 on cast', () => {
+    const g = mk();
+    const s = castLapp(g, g.spotX + 40, g.spotY + 20);
+    expect(s.lapp).toBeDefined();
+    expect(s.lapp!.flightProgress).toBe(0);
+    expect(s.lapp!.startX).toBe(g.spotX);
+    expect(s.lapp!.startY).toBe(g.spotY - 10);
+    expect(s.particles).toBeDefined();
+    expect(s.particles.length).toBe(1);
+    const p = s.particles[0]!;
+    expect(p.kind).toBe('ripple');
+    expect(p.x).toBe(s.lapp!.x);
+    expect(p.y).toBe(s.lapp!.y);
+    expect(p.lifeMs).toBe(0);
+  });
+
+  it('advances flightProgress to 1 over successive steps', () => {
+    const g = mk();
+    const s = castLapp(g, g.spotX + 40, g.spotY + 20);
+    expect(s.lapp!.flightProgress).toBe(0);
+    const s1 = step(s, 100);
+    expect(s1.lapp!.flightProgress).toBeGreaterThan(0);
+    expect(s1.lapp!.flightProgress).toBeLessThan(1);
+    const s2 = step(s1, 300);
+    expect(s2.lapp!.flightProgress).toBe(1);
+  });
+
+  it('spawns a +1 floating text particle in party color on successful adult catch', () => {
+    const g = mk();
+    const bait = activeBait(g.tackle)!;
+    const g2: GameState = {
+      ...g,
+      lapp: { x: 100, y: 100, baitId: bait.id },
+      bitingVoterId: 99,
+      voters: [voter({ id: 99, x: 120, y: 130, category: bait.category, age: 'adult', state: 'biting', biteDeadline: 10_000 })],
+      particles: [],
+    };
+    const s = onHookClick(g2, 5_000);
+    expect(s.votes).toBe(1);
+    expect(s.particles.length).toBe(1);
+    const p = s.particles[0]!;
+    expect(p.kind).toBe('float_text');
+    expect(p.text).toBe('+1');
+    expect(p.x).toBe(120);
+    expect(p.y).toBe(118); // 130 - 12
+    expect(p.lifeMs).toBe(0);
+  });
+
+  it('spawns a Saknar rösträtt floating text particle on minor release', () => {
+    const g = mk();
+    const bait = activeBait(g.tackle)!;
+    const g2: GameState = {
+      ...g,
+      lapp: { x: 100, y: 100, baitId: bait.id },
+      bitingVoterId: 99,
+      voters: [voter({ id: 99, x: 120, y: 130, category: bait.category, age: 'minor', state: 'biting', biteDeadline: 10_000 })],
+      particles: [],
+    };
+    const s = onHookClick(g2, 5_000);
+    expect(s.released).toBe(1);
+    expect(s.particles.length).toBe(1);
+    const p = s.particles[0]!;
+    expect(p.kind).toBe('float_text');
+    expect(p.text).toBe('Saknar rösträtt');
+    expect(p.x).toBe(120);
+    expect(p.y).toBe(118);
+    expect(p.color).toBe('#aaaaaa');
+  });
+
+  it('advances particle lifetime and physics during step and removes expired particles', () => {
+    const g = mk();
+    const testState: GameState = {
+      ...g,
+      particles: [
+        { id: 1, x: 100, y: 100, text: '+1', color: '#fff', lifeMs: 0, maxLifeMs: 500, kind: 'float_text' },
+        { id: 2, x: 200, y: 200, text: '', color: '#fff', lifeMs: 0, maxLifeMs: 400, kind: 'ripple', radius: 2, maxRadius: 18 },
+      ],
+    };
+    // Advance 200ms
+    const s1 = step(testState, 200);
+    expect(s1.particles.length).toBe(2);
+    const p1 = s1.particles.find((p) => p.id === 1)!;
+    expect(p1.lifeMs).toBe(200);
+    // float_text moves upward at 30px/s -> 200ms = 6px up
+    expect(p1.y).toBeCloseTo(100 - (30 * 200) / 1000, 2);
+
+    const p2 = s1.particles.find((p) => p.id === 2)!;
+    expect(p2.lifeMs).toBe(200);
+    expect(p2.radius).toBeCloseTo(2 + (18 - 2) * 0.5, 2);
+
+    // Advance another 250ms (total 450ms) -> ripple (maxLifeMs 400) should expire
+    const s2 = step(s1, 250);
+    expect(s2.particles.find((p) => p.id === 2)).toBeUndefined();
+    expect(s2.particles.find((p) => p.id === 1)).toBeDefined();
+
+    // Advance another 100ms (total 550ms) -> float_text (maxLifeMs 500) should expire
+    const s3 = step(s2, 100);
+    expect(s3.particles.length).toBe(0);
+  });
+});

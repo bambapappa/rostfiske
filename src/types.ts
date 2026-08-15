@@ -61,6 +61,25 @@ export interface Lapp {
   x: number;
   y: number;
   baitId: string;
+  startX?: number;
+  startY?: number;
+  flightProgress?: number; // 0..1
+  flightDurationMs?: number;
+}
+
+export type ParticleKind = 'float_text' | 'ripple';
+
+export interface Particle {
+  id: number;
+  x: number;
+  y: number;
+  text: string;
+  color: string;
+  lifeMs: number;
+  maxLifeMs: number;
+  kind: ParticleKind;
+  radius?: number;
+  maxRadius?: number;
 }
 
 export interface Building {

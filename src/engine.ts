@@ -4,8 +4,19 @@ import { buildTackle, activeBait, baitById, wearBait } from './bait';
 import { tryEnter, tryExit, spawnAtBuilding, wanderStep } from './voter';
 import { beginBite, hookSucceeds, bittenVoterEscapes, resolveCatch, resolveMiss, moveAttracted, noticeLapp, reachedLapp } from './fishing';
 import { spotById, BUILDINGS, buildingById, buildingRects, pushOut } from './world';
-import type { PromiseData, Bait, Voter, GamePhase, SpotId, Lapp, GameEvent } from './types';
+import type { PromiseData, Bait, Voter, GamePhase, SpotId, Lapp, GameEvent, Particle } from './types';
 import { catchLine } from './ui';
+
+export const PARTY_COLORS: Record<PartyCode, string> = {
+  s: '#e8112d',
+  m: '#005ea1',
+  sd: '#ddab00',
+  c: '#009933',
+  v: '#da291c',
+  kd: '#005ea8',
+  l: '#006ab3',
+  mp: '#83cf39',
+};
 
 export interface GameState {
   phase: GamePhase;
@@ -25,6 +36,8 @@ export interface GameState {
   lapp: Lapp | null;
   lastEvent: GameEvent | null;
   lastCatch: { title: string; msekBase: number; sourceUrl: string; sourceDomain: string; released: boolean } | null;
+  particles: Particle[];
+  nextParticleId: number;
 }
 
 export interface CreateGameOpts {
@@ -48,6 +61,7 @@ export function createGame(opts: CreateGameOpts): GameState {
     spotId, spotX: spot.x, spotY: spot.y,
     timeLeftMs: ROUND_MS, votes: 0, released: 0, rng, nextVoterId: 1, spawnAccMs: 0,
     bitingVoterId: null, lapp: null, lastEvent: null, lastCatch: null,
+    particles: [], nextParticleId: 1,
   };
 }
 
@@ -87,7 +101,31 @@ export function castLapp(state: GameState, x: number, y: number): GameState {
 
   return {
     ...state,
-    lapp: { x: cx, y: cy, baitId: bait.id },
+    lapp: {
+      x: cx,
+      y: cy,
+      baitId: bait.id,
+      startX: state.spotX,
+      startY: state.spotY - 10,
+      flightProgress: 0,
+      flightDurationMs: 250,
+    },
+    particles: [
+      ...(state.particles ?? []),
+      {
+        id: state.nextParticleId ?? 1,
+        x: cx,
+        y: cy,
+        text: '',
+        color: 'rgba(255, 255, 255, 0.7)',
+        lifeMs: 0,
+        maxLifeMs: 500,
+        kind: 'ripple',
+        radius: 2,
+        maxRadius: 18,
+      },
+    ],
+    nextParticleId: (state.nextParticleId ?? 1) + 1,
     lastEvent: { kind: 'cast', text: `Kastar: ${bait.title}` },
   };
 }
@@ -98,6 +136,38 @@ export function step(state: GameState, dtMs: number): GameState {
   if (timeLeftMs === 0) return { ...state, timeLeftMs: 0, phase: 'game_over' };
 
   const elapsed = ROUND_MS - timeLeftMs; // game clock for hook deadlines
+
+  // advance cast trajectory flight progress
+  let lapp = state.lapp;
+  if (lapp && lapp.flightProgress !== undefined && lapp.flightProgress < 1) {
+    const dur = lapp.flightDurationMs ?? 250;
+    const nextP = Math.min(1, lapp.flightProgress + dtMs / dur);
+    lapp = { ...lapp, flightProgress: nextP };
+  }
+
+  // advance particles lifetimes & physics
+  const particles = (state.particles ?? [])
+    .map((p) => {
+      const lifeMs = p.lifeMs + dtMs;
+      if (p.kind === 'float_text') {
+        return {
+          ...p,
+          lifeMs,
+          y: p.y - (30 * dtMs) / 1000,
+        };
+      } else if (p.kind === 'ripple') {
+        const progress = Math.min(1, lifeMs / p.maxLifeMs);
+        const startR = p.radius ?? 2;
+        const maxR = p.maxRadius ?? 18;
+        return {
+          ...p,
+          lifeMs,
+          radius: startR + (maxR - startR) * progress,
+        };
+      }
+      return { ...p, lifeMs };
+    })
+    .filter((p) => p.lifeMs < p.maxLifeMs);
 
   // spawn at a random building's door, capped at MAX_VOTERS (inside voters count)
   let { rng, nextVoterId, spawnAccMs, voters } = state;
@@ -131,7 +201,6 @@ export function step(state: GameState, dtMs: number): GameState {
       // castLapp's push-out), and blocking an attracted voter en-route could
       // strand it against a wall — a sanctioned deviation from the README's
       // blanket "väljare går ej genom hus" claim.
-      const lapp = state.lapp;
       if (!lapp) {
         return { ...v, state: 'wander' as const, attractToX: undefined, attractToY: undefined };
       }
@@ -147,7 +216,6 @@ export function step(state: GameState, dtMs: number): GameState {
       return moved;
     }
     // wander: notice the lapp → head for a door → natural wandering
-    const lapp = state.lapp;
     if (lapp) {
       // the lapp attracts by its OWN cast bait (baitId), never by the active slot
       const lappBait = baitById(state.tackle, lapp.baitId);
@@ -167,7 +235,6 @@ export function step(state: GameState, dtMs: number): GameState {
   });
 
   let tackle = state.tackle;
-  let lapp = state.lapp;
   if (missedIds.length > 0) {
     // the biter took the lapp: wear the LAPP'S bait (resolveMiss no-ops at 0
     // durability), remove the voter, clear the angling state
@@ -182,7 +249,7 @@ export function step(state: GameState, dtMs: number): GameState {
     lastEvent = { kind: 'miss', text: 'Missad — väljaren tog lappen och gick' };
   }
 
-  return { ...state, timeLeftMs, voters, rng, nextVoterId, spawnAccMs, bitingVoterId, lapp, lastEvent, tackle };
+  return { ...state, timeLeftMs, voters, rng, nextVoterId, spawnAccMs, bitingVoterId, lapp, lastEvent, tackle, particles };
 }
 
 export function onHookClick(state: GameState, nowMs: number): GameState {
@@ -211,12 +278,41 @@ export function onHookClick(state: GameState, nowMs: number): GameState {
     const lastEvent: GameEvent = usedUp
       ? { kind: 'baitWorn', text: activeBait(tackle) ? `Betet slut: ${bait.title} — byter bete` : `Betet slut: ${bait.title}` }
       : { kind: res.released ? 'release' : 'catch', text: catchLine(lastCatch) };
+
+    let nextParticleId = state.nextParticleId ?? 1;
+    const particles = [...(state.particles ?? [])];
+    if (res.released) {
+      particles.push({
+        id: nextParticleId++,
+        x: v.x,
+        y: v.y - 12,
+        text: 'Saknar rösträtt',
+        color: '#aaaaaa',
+        lifeMs: 0,
+        maxLifeMs: 1200,
+        kind: 'float_text',
+      });
+    } else {
+      particles.push({
+        id: nextParticleId++,
+        x: v.x,
+        y: v.y - 12,
+        text: '+1',
+        color: PARTY_COLORS[state.party] ?? '#ffd700',
+        lifeMs: 0,
+        maxLifeMs: 1000,
+        kind: 'float_text',
+      });
+    }
+
     return {
       ...state, voters, tackle,
       votes: state.votes + res.votes,
       released: state.released + (res.released ? 1 : 0),
       bitingVoterId: null, lapp: null, lastCatch,
       lastEvent,
+      particles,
+      nextParticleId,
     };
   }
   // biting but outside the hook window → the same miss as an escaped biter

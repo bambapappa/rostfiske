@@ -160,15 +160,44 @@ export function drawScene(ctx: CanvasRenderingContext2D, state: GameState, sprit
 
   // --- fishing line + lapp (cast note) ---
   if (state.lapp) {
-    const { x, y } = state.lapp;
-    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(state.spotX, state.spotY - 10);
-    ctx.lineTo(x, y - 2);
-    ctx.stroke();
-    ctx.fillStyle = '#fff'; // small white paper
-    ctx.fillRect(Math.round(x) - 2, Math.round(y) - 3, 5, 4);
+    const { x, y, startX, startY, flightProgress } = state.lapp;
+    if (flightProgress !== undefined && flightProgress < 1) {
+      const p = Math.max(0, Math.min(1, flightProgress));
+      const sx = startX ?? state.spotX;
+      const sy = startY ?? (state.spotY - 10);
+      const lx = sx + (x - sx) * p;
+      const linearY = sy + (y - sy) * p;
+      const arcHeight = Math.sin(p * Math.PI) * 28;
+      const ly = linearY - arcHeight;
+
+      // curving cast line
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(state.spotX, state.spotY - 10);
+      ctx.quadraticCurveTo((sx + x) / 2, Math.min(sy, y) - 30, lx, ly);
+      ctx.stroke();
+
+      // ground shadow of flying note
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.fillRect(Math.round(lx) - 2, Math.round(linearY) - 1, 5, 2);
+
+      // flying paper note
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(Math.round(lx) - 2, Math.round(ly) - 3, 5, 4);
+      ctx.restore();
+    } else {
+      // landed note
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(state.spotX, state.spotY - 10);
+      ctx.lineTo(x, y - 2);
+      ctx.stroke();
+      ctx.fillStyle = '#fff'; // small white paper
+      ctx.fillRect(Math.round(x) - 2, Math.round(y) - 3, 5, 4);
+    }
   }
 
   // --- voters (inside a building = invisible) ---
@@ -184,6 +213,23 @@ export function drawScene(ctx: CanvasRenderingContext2D, state: GameState, sprit
     } else {
       ctx.fillStyle = CATEGORY_COLORS[v.category] ?? FALLBACK_COLOR;
       ctx.fillRect(Math.round(v.x) - 3, Math.round(v.y) - 3, minor ? 5 : 7, minor ? 5 : 7);
+    }
+
+    // --- voter awareness cue (when heading to lapp) ---
+    if (v.state === 'toLapp') {
+      const vx = Math.round(v.x);
+      const vy = Math.round(v.y) - (minor ? 16 : 18);
+      const bob = Math.round(Math.sin((nowMs + v.id * 100) / 120) * 1.5);
+      ctx.save();
+      ctx.fillStyle = '#ffe66d';
+      ctx.beginPath();
+      ctx.arc(vx, vy + bob, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#1a1c2c';
+      ctx.font = 'bold 5px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('?', vx, vy + bob + 2);
+      ctx.restore();
     }
   }
 
@@ -206,6 +252,38 @@ export function drawScene(ctx: CanvasRenderingContext2D, state: GameState, sprit
     ctx.fillRect(bx - 8, by - 13, 16, 2); // track
     ctx.fillStyle = '#ffe66d';
     ctx.fillRect(bx - 8, by - 13, Math.round(frac * 16), 2);
+  }
+
+  // --- particles (landing ripples & floating feedback text) ---
+  if (state.particles && state.particles.length > 0) {
+    for (const p of state.particles) {
+      const lifeRatio = Math.max(0, Math.min(1, p.lifeMs / p.maxLifeMs));
+      const alpha = Math.max(0, 1 - lifeRatio);
+
+      if (p.kind === 'ripple') {
+        const startR = p.radius ?? 2;
+        const maxR = p.maxRadius ?? 18;
+        const r = startR + (maxR - startR) * lifeRatio;
+        ctx.save();
+        ctx.strokeStyle = p.color || 'rgba(255, 255, 255, 0.7)';
+        ctx.globalAlpha = alpha * 0.8;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      } else if (p.kind === 'float_text') {
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.font = 'bold 8px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillText(p.text, Math.round(p.x) + 1, Math.round(p.y) + 1);
+        ctx.fillStyle = p.color || '#fff';
+        ctx.fillText(p.text, Math.round(p.x), Math.round(p.y));
+        ctx.restore();
+      }
+    }
   }
 
   // --- politician (16x24 caricature cell per party index, 4x2 sheet;
