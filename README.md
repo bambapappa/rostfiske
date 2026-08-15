@@ -13,16 +13,17 @@ pnpm dev
 ### Kontroller
 
 - **Klicka** — kasta lapp (mete) eller mothugg vid napp
+- **Mellanslag** — mothugg vid napp
 - **Q/W/E/R** — byt plats (torget, skolan, äldreboendet, stationen)
 - **1–5** — välj bete (väljarkategori), eller klicka i betespanelen
 
 ### Mekanik (v1.2)
 
-- **Kastradie:** lappen kastas max 110 px från politikern (musen utanför radien ger inget kast)
+- **Kastradie:** lappen kastas max 110 px från politikern — klick utanför radien kastas till cirkelkanten (max 110 px)
 - **Krock:** väljare går ej genom hus — de stannar på trottoarer och torg
 - **Naturligt vandrande:** varje väljare har egen fart, svänger mjukt och stannar ibland ("tittar i skyltfönster")
 - **Betespanel:** de fem betena syns med hållbarhets-pips; byt med 1–5 eller klick
-- **Porträtt i karaktärsvälet:** varje valknapp visar partiledarens pixelporträtt (16×24, uppskalat ×3) brevid partinamnet
+- **Porträtt i karaktärsvälet:** varje valknapp visar partiledarens pixelporträtt (16×24, uppskalat ×3) ovanför partinamnet
 - **Ledare 2026:** karikatyrerna föreställer de aktuella partiledarna — hela listan med källor finns i `public/sprites/README.md`. (MP har två språkrör; spelet använder en avatar per parti och valde Amanda Lind.)
 
 ### Mekanik (v1.1)
