@@ -37,10 +37,9 @@ describe('castLapp', () => {
     const bait = activeBait(g.tackle)!;
     const s = castLapp(g, -20, 99_999);
     // v1.2: cast radius applies first, then screen clamp
-    // The far-away click is first clamped to CAST_RADIUS from (192,104),
-    // then screen-clamped to y=LOGICAL_H
+    // The far-away click is clamped to CAST_RADIUS from (256,160)
     expect(s.lapp).toBeDefined();
-    expect(s.lapp!.y).toBe(LOGICAL_H);
+    expect(s.lapp!.y).toBeCloseTo(g.spotY + CAST_RADIUS, 0);
     expect(s.lapp!.x).toBeGreaterThan(0);
     expect(s.lapp!.x).toBeLessThan(LOGICAL_W);
     expect(s.lapp!.baitId).toBe(bait.id);
@@ -444,15 +443,15 @@ describe('time + game over', () => {
 describe('building collision + natural wandering (v1.2)', () => {
   it('a wanderer stepping into a footprint keeps its position that frame, stays wander', () => {
     const g = mk();
-    // stationen footprint: 168..216 x, 8..40 y; door (192,40).
+    // stationen footprint: 232..280 x, 24..56 y; door (256,56).
     // Voter just below its right part, heading straight up at max wander
-    // speed: 2 s · 16 px/s would land at (214,24) — interior, ~22 px from the
+    // speed: 2 s · 16 px/s would land at (278,40) — interior, ~27 px from the
     // door (outside door zone r=10 and outside the 24 px tryEnter proximity).
-    const s = step({ ...g, voters: [voter({ id: 1, x: 214, y: 56, heading: -Math.PI / 2, headingTarget: -Math.PI / 2, nextTurnAt: 1e9, speed: 16 })] }, 2_000);
+    const s = step({ ...g, voters: [voter({ id: 1, x: 278, y: 72, heading: -Math.PI / 2, headingTarget: -Math.PI / 2, nextTurnAt: 1e9, speed: 16 })] }, 2_000);
     const v = s.voters.find((x) => x.id === 1)!;
     expect(v.state).toBe('wander');
-    expect(v.x).toBe(214); // blocked (or idle): never walks through the house
-    expect(v.y).toBe(56);
+    expect(v.x).toBe(278); // blocked (or idle): never walks through the house
+    expect(v.y).toBe(72);
   });
 
   it('spawned wanderers stay on screen over long play', () => {
@@ -470,16 +469,16 @@ describe('building collision + natural wandering (v1.2)', () => {
 
   it('castLapp aimed inside a footprint lands outside the rect', () => {
     const g = mk();
-    // politician at torget (192,104); hus2 footprint 240..288 x, 134..166 y.
-    // (264,140) is ~78px away (within CAST_RADIUS) and interior to hus2.
-    const s = castLapp(g, 264, 140);
+    // politician at torget (256,160); biblioteket footprint 232..280 x, 216..248 y.
+    // (256,222) is 62px away (within CAST_RADIUS=110) and interior to biblioteket.
+    const s = castLapp(g, 256, 222);
     expect(s.lapp).toBeDefined();
     for (const r of buildingRects()) {
       const inside = s.lapp!.x > r.x && s.lapp!.x < r.x + r.w && s.lapp!.y > r.y && s.lapp!.y < r.y + r.h;
       expect(inside).toBe(false);
     }
-    // pushed to the nearest edge (top, 6px away): same x, y clamped to 134
-    expect(s.lapp!.x).toBeCloseTo(264, 0);
-    expect(s.lapp!.y).toBe(134);
+    // pushed to the nearest edge (top, 6px away): same x, y clamped to 216
+    expect(s.lapp!.x).toBeCloseTo(256, 0);
+    expect(s.lapp!.y).toBe(216);
   });
 });

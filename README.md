@@ -33,7 +33,7 @@ pnpm dev
 - **Väljare reagerar:** Endast väljare med matchande kategori (t.ex. "skatter" för skattbete) kan se lappen
 - **Napp:** När en väljare plockar upp lappen visas "NAPP!" — du har 650 ms på dig att klicka för att mothugga
 - **Miss:** Klickar du för sent eller inte alls behåller väljaren lappen och betet slits
-- **Byggnader:** Väljare går in i byggnader (skolan, äldreboendet, stationen, hus) och kommer ut med nya preferenser
+- **Byggnader:** Väljare går in i byggnader (skolan, äldreboendet, stationen, bageriet, biblioteket, apoteket) och kommer ut med nya preferenser
 
 ## Data
 
@@ -50,7 +50,7 @@ Källor (CC BY 4.0) visas vid varje fångst.
 
 All grafik är CC0 (public domain) — se public/sprites/README.md.
 
-- **Stad:** Kenney "Tiny Town" tileset (CC0) — 24×13 grid med gräs, vägar, byggnader
+- **Stad:** Kenney "Tiny Town" tileset (CC0) — 32×18 grid (512×288 px) med gräs, vägar, torg, damm och byggnader
 - **Partiledare:** Genererade karikatyrer (8 ledare, 16×24 px var) i partifärgerna — 2026 års partiledare med karaktäristiska drag; se tabellen i `public/sprites/README.md`
 - **Väljare:** Genererade väljare (12 varianter vuxna, 4 varianter ungdomar) i neutrala vardagsfärger
 

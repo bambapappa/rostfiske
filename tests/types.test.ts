@@ -29,8 +29,8 @@ describe('domain types', () => {
   });
 
   it('en byggnad har dörr och bias', () => {
-    const b: Building = { id: 'skolan', name: 'Skolan', x: 56, y: 40, doorX: 56, doorY: 56, bias: { utbildning: 6 } };
-    expect(b.doorX).toBe(56);
+    const b: Building = { id: 'skolan', name: 'Skolan', x: 80, y: 60, doorX: 80, doorY: 76, bias: { utbildning: 6 } };
+    expect(b.doorX).toBe(80);
     expect(b.bias.utbildning).toBe(6);
   });
 

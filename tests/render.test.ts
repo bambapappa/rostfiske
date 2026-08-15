@@ -164,7 +164,7 @@ describe('drawScene', () => {
     const g = createGame({ party: 's', promises });
     const { ctx, textCalls } = stubCtx();
     drawScene(ctx, g, new Map(), parties, 0);
-    // Check that Skolan label is near its door position (doorX=56, doorY=56, labelY≈doorY+8=64)
+    // Check that Skolan label is near its door position (doorX=80, doorY=76, labelY≈doorY+8=84)
     const skolan = BUILDINGS.find((b) => b.id === 'skolan')!;
     const skolanLabel = textCalls.find((t) => t.text === 'Skolan');
     expect(skolanLabel).toBeDefined();
@@ -175,9 +175,12 @@ describe('drawScene', () => {
     const labels = textCalls.map((t) => t.text);
     expect(labels).toContain('Äldreboendet');
     expect(labels).toContain('Stationen');
-    expect(labels).toContain('Hus 1');
-    expect(labels).toContain('Hus 2');
-    expect(labels).toContain('Hus 3');
+    expect(labels).toContain('Bageriet');
+    expect(labels).toContain('Biblioteket');
+    expect(labels).toContain('Apoteket');
+    expect(labels).not.toContain('Hus 1');
+    expect(labels).not.toContain('Hus 2');
+    expect(labels).not.toContain('Hus 3');
   });
 
   it('draws Torget label at the plaza (v1.2)', () => {

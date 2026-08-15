@@ -13,7 +13,7 @@ export const HOOK_WINDOW_MS = 650;
 export const BAIT_DURABILITY = 6;
 export const TACKLE_SIZE = 5;
 export const MINOR_PROBABILITY = 0.15;
-export const MAX_VOTERS = 24;
+export const MAX_VOTERS = 32;
 // v1.2 natural wandering: per-voter speed drawn at spawn in [MIN, MAX]
 export const VOTER_SPEED_MIN = 10;
 export const VOTER_SPEED_MAX = 16;
@@ -41,10 +41,10 @@ export const ENTER_PROB_PER_SEC = 0.15;
 export const TILE = 16;
 export const LEADER_W = 16; // politician caricature cell in politicians.png
 export const LEADER_H = 24; // feet on the cell's bottom row (y23)
-export const LOGICAL_W = 384;
-export const LOGICAL_H = 208; // 16 px tiles → integer grid 24×13
-export const TOWN_COLS = 24;
-export const TOWN_ROWS = 13;
+export const LOGICAL_W = 512;
+export const LOGICAL_H = 288; // 16 px tiles → integer grid 32×18 (16:9)
+export const TOWN_COLS = 32;
+export const TOWN_ROWS = 18;
 
 // Voter appearance (3 bodies × 4 palettes)
 export const VOTER_VARIANTS = 12;

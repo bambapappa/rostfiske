@@ -83,9 +83,9 @@ describe('bindInput', () => {
     const canvas = new FakeCanvas();
     const { h, calls } = handlers();
     bindInput(canvas as unknown as HTMLCanvasElement, h);
-    click(canvas, 56, 56);    // skolan door
-    click(canvas, 320, 56);   // aldreboendet door
-    click(canvas, 192, 40);   // stationen door
+    click(canvas, 80, 76);    // skolan door
+    click(canvas, 430, 76);   // aldreboendet door
+    click(canvas, 256, 56);   // stationen door
     expect(calls.spot).toEqual(['skolan', 'aldreboendet', 'stationen']);
     expect(calls.cast).toHaveLength(0);
   });
@@ -94,7 +94,7 @@ describe('bindInput', () => {
     const canvas = new FakeCanvas();
     const { h, calls } = handlers();
     bindInput(canvas as unknown as HTMLCanvasElement, h);
-    click(canvas, LOGICAL_W * 0.5, LOGICAL_H * 0.62); // torget anchor
+    click(canvas, 256, 160); // torget anchor
     expect(calls.spot).toEqual(['torget']);
     expect(calls.cast).toHaveLength(0);
   });
@@ -103,7 +103,7 @@ describe('bindInput', () => {
     const canvas = new FakeCanvas();
     const { h, calls } = handlers();
     bindInput(canvas as unknown as HTMLCanvasElement, h);
-    click(canvas, 340, 180);  // bottom-right corner, far from all anchors
+    click(canvas, 340, 180);  // far from all anchors
     expect(calls.cast).toEqual([{ x: 340, y: 180 }]);
     expect(calls.spot).toHaveLength(0);
   });

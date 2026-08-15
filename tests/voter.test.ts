@@ -52,7 +52,7 @@ describe('spawnVoter', () => {
   });
 });
 
-const skolan: Building = { id: 'skolan', name: 'Skolan', x: 56, y: 40, doorX: 56, doorY: 56, bias: { utbildning: 6 } };
+const skolan: Building = { id: 'skolan', name: 'Skolan', x: 80, y: 60, doorX: 80, doorY: 76, bias: { utbildning: 6 } };
 
 function makeVoter(overrides: Partial<Voter> = {}): Voter {
   return {
@@ -208,7 +208,7 @@ describe('spawnAtBuilding', () => {
 });
 
 describe('blockedMove (v1.2)', () => {
-  const skolan = buildingById('skolan'); // rect 32..80 x, 24..56 y; door (56,56)
+  const skolan = buildingById('skolan'); // rect 56..104 x, 44..76 y; door (80,76)
   const base: Voter = { id: 1, x: 200, y: 120, speed: 13, category: 'välfärd', age: 'adult', state: 'wander', variant: 0 };
 
   it('returns the new position, blocked=false, when the target is free', () => {
@@ -217,24 +217,24 @@ describe('blockedMove (v1.2)', () => {
   });
 
   it('blocks a step into a footprint: keeps the old position and flags blocked', () => {
-    const v: Voter = { ...base, x: 34, y: 60 };
-    const r = blockedMove(v, 34, 42, BUILDINGS); // (34,42) inside skolan rect, 26px from door
-    expect(r).toEqual({ x: 34, y: 60, blocked: true });
+    const v: Voter = { ...base, x: 58, y: 80 };
+    const r = blockedMove(v, 58, 62, BUILDINGS); // (58,62) inside skolan rect, 26px from door (80,76)
+    expect(r).toEqual({ x: 58, y: 80, blocked: true });
   });
 
   it('allows a step strictly inside the footprint when within the door radius (door zone)', () => {
-    const v: Voter = { ...base, x: 52, y: 62 };
-    // (52,50) is strictly interior (32<52<80, 24<50<56) AND ~7.2px from the
-    // door (56,56) — this exercises the isDoorZone exception INSIDE blockedMove
-    const r = blockedMove(v, 52, 50, BUILDINGS);
-    expect(r).toEqual({ x: 52, y: 50, blocked: false });
+    const v: Voter = { ...base, x: 76, y: 82 };
+    // (76,70) is strictly interior (56<76<104, 44<70<76) AND ~7.2px from the
+    // door (80,76) — this exercises the isDoorZone exception INSIDE blockedMove
+    const r = blockedMove(v, 76, 70, BUILDINGS);
+    expect(r).toEqual({ x: 76, y: 70, blocked: false });
   });
 
   it('blocks an interior point just outside the door radius', () => {
-    const v: Voter = { ...base, x: 40, y: 60 };
-    // (40,45) is strictly interior but ~19.4px from the door — no exception
-    const r = blockedMove(v, 40, 45, BUILDINGS);
-    expect(r).toEqual({ x: 40, y: 60, blocked: true });
+    const v: Voter = { ...base, x: 64, y: 80 };
+    // (64,65) is strictly interior but ~19.4px from the door — no exception
+    const r = blockedMove(v, 64, 65, BUILDINGS);
+    expect(r).toEqual({ x: 64, y: 80, blocked: true });
   });
 });
 
@@ -320,18 +320,18 @@ describe('wanderStep (v1.2 natural wandering)', () => {
   });
 
   it('a blocked step keeps the position and picks a new heading target', () => {
-    // stationen footprint 168..216 x, 8..40 y, door (192,40): start below its
+    // stationen footprint 232..280 x, 24..56 y, door (256,56): start below its
     // right part heading straight up — 2 s · 16 px/s lands deep inside
     let blockedCount = 0;
     for (let seed = 1; seed <= 30; seed++) {
       const v0 = makeVoter({
-        x: 214, y: 56, heading: -Math.PI / 2, headingTarget: -Math.PI / 2,
+        x: 278, y: 72, heading: -Math.PI / 2, headingTarget: -Math.PI / 2,
         nextTurnAt: 1e9, speed: 16,
       });
       const v1 = wanderStep(v0, 2_000, 0, makeRng(seed), BUILDINGS);
       expect(v1.state).toBe('wander');
-      expect(v1.x).toBe(214); // never walks through the house (idle or blocked)
-      expect(v1.y).toBe(56);
+      expect(v1.x).toBe(278); // never walks through the house (idle or blocked)
+      expect(v1.y).toBe(72);
       if (v1.headingTarget !== -Math.PI / 2) blockedCount++; // blocked → re-target
     }
     expect(blockedCount).toBeGreaterThan(15); // p(idle eats the step) = 0.16

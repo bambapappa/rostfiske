@@ -6,7 +6,7 @@ import type { SheetMap } from './sprites';
 import type { PartyData, Voter } from './types';
 
 // ---------------------------------------------------------------------------
-// Town layout — hand-authored 24x13 grid of 16px tiles from Kenney Tiny Town
+// Town layout — hand-authored 32x18 grid of 16px tiles from Kenney Tiny Town
 // (public/sprites/city.png, 12x11 tile sheet, CC0). Tile indices below are
 // row-major in that sheet (index = row * 12 + col).
 // ---------------------------------------------------------------------------
@@ -36,37 +36,43 @@ function buildTerrain(): number[][] {
     }
     grid.push(row);
   }
-  // two road strips: one full-width horizontal, one vertical from the station
-  for (let c = 0; c < TOWN_COLS; c++) grid[6]![c] = TILE_DIRT;
-  for (let r = 2; r <= 5; r++) grid[r]![12] = TILE_DIRT;
-  // torget: concrete "circle" (diamond) around the default fishing spot
+  // road network: central vertical avenue, north & south horizontal connectors
+  for (let c = 4; c <= 27; c++) grid[5]![c] = TILE_DIRT;
+  for (let c = 7; c <= 25; c++) grid[14]![c] = TILE_DIRT;
+  for (let r = 3; r <= 15; r++) grid[r]![16] = TILE_DIRT;
+  // torget: concrete plaza around the default fishing spot (col 16, row 10)
   const PLAZA: Array<[number, number]> = [
-    [12, 7], [11, 8], [12, 8], [13, 8], [10, 9], [11, 9], [12, 9], [13, 9], [14, 9],
+    [16, 8],
+    [15, 9], [16, 9], [17, 9],
+    [14, 10], [15, 10], [16, 10], [17, 10], [18, 10],
+    [15, 11], [16, 11], [17, 11],
+    [16, 12],
   ];
   for (const [c, r] of PLAZA) grid[r]![c] = TILE_PLAZA;
   // buildings (tile rows top/bottom, anchored at left column); positions mirror
-  // the door positions in world.ts (skolan, äldreboendet, stationen, 3 houses)
+  // the door positions in world.ts (skolan, äldreboendet, stationen, bageriet, biblioteket, apoteket)
   const building = (left: number, top: number, t: number[], b: number[]) => {
     for (let i = 0; i < t.length; i++) {
       grid[top]![left + i] = t[i]!;
       grid[top + 1]![left + i] = b[i]!;
     }
   };
-  building(2, 1, GRAY_TOP, GRAY_BOT);   // skolan
-  building(18, 1, RED_TOP, RED_BOT);    // äldreboendet
-  building(11, 0, GRAY_TOP, GRAY_BOT);  // stationen
-  building(1, 8, GRAY_TOP.slice(0, 2), GRAY_BOT.slice(0, 2)); // hus 3
-  building(7, 8, RED_TOP.slice(0, 2), RED_BOT.slice(0, 2));   // hus 1
-  building(16, 8, GRAY_TOP.slice(0, 2), GRAY_BOT.slice(0, 2)); // hus 2
+  building(4, 2, GRAY_TOP, GRAY_BOT);   // skolan
+  building(15, 1, GRAY_TOP, GRAY_BOT);  // stationen
+  building(25, 2, RED_TOP, RED_BOT);    // äldreboendet
+  building(7, 12, RED_TOP, RED_BOT);    // bageriet
+  building(15, 13, GRAY_TOP, GRAY_BOT); // biblioteket
+  building(23, 12, RED_TOP, RED_BOT);   // apoteket
   // dirt thresholds in front of the doors (voters spawn/enter there)
-  grid[3]![3] = TILE_DIRT;   // skolan door
-  grid[3]![20] = TILE_DIRT;  // äldreboendet door
-  grid[10]![2] = TILE_DIRT;  // hus 3 door
-  grid[10]![7] = TILE_DIRT;  // hus 1 door
-  grid[10]![16] = TILE_DIRT; // hus 2 door
+  grid[4]![5] = TILE_DIRT;   // skolan door
+  grid[3]![16] = TILE_DIRT;  // stationen door
+  grid[4]![26] = TILE_DIRT;  // äldreboendet door
+  grid[14]![8] = TILE_DIRT;  // bageriet door
+  grid[15]![16] = TILE_DIRT; // biblioteket door
+  grid[14]![24] = TILE_DIRT; // apoteket door
   // small pond, bottom-right
-  grid[10]![21] = TILE_WATER; grid[10]![22] = TILE_WATER;
-  grid[11]![21] = TILE_WATER; grid[11]![22] = TILE_WATER;
+  grid[14]![28] = TILE_WATER; grid[14]![29] = TILE_WATER; grid[14]![30] = TILE_WATER;
+  grid[15]![28] = TILE_WATER; grid[15]![29] = TILE_WATER; grid[15]![30] = TILE_WATER;
   return grid;
 }
 
@@ -74,17 +80,23 @@ const TERRAIN = buildTerrain();
 
 /** Transparent props (trees/bushes) drawn on top of the terrain. */
 const PROPS: Array<[col: number, row: number, tile: number]> = [
-  // top edge (station occupies cols 11-13)
+  // top edge (skip stationen cols 15..17)
   [0, 0, TILE_TREE], [2, 0, TILE_TREE], [4, 0, TILE_TREE_FALL], [6, 0, TILE_TREE],
-  [8, 0, TILE_TREE], [10, 0, TILE_TREE_FALL], [14, 0, TILE_TREE], [16, 0, TILE_TREE_FALL],
-  [18, 0, TILE_TREE], [20, 0, TILE_TREE], [22, 0, TILE_TREE_FALL],
-  // bottom edge (skip the pond columns 21-22)
-  [0, 12, TILE_TREE], [2, 12, TILE_TREE_FALL], [4, 12, TILE_TREE], [6, 12, TILE_TREE],
-  [8, 12, TILE_TREE_FALL], [10, 12, TILE_TREE], [12, 12, TILE_TREE], [14, 12, TILE_TREE_FALL],
-  [16, 12, TILE_TREE], [18, 12, TILE_TREE], [20, 12, TILE_TREE_FALL], [23, 12, TILE_TREE],
-  // scattered interior greenery (kept clear of doors, roads and the plaza)
-  [6, 4, TILE_TREE], [22, 4, TILE_TREE_FALL], [4, 7, TILE_BUSH], [19, 7, TILE_TREE],
-  [5, 11, TILE_TREE], [9, 11, TILE_BUSH],
+  [8, 0, TILE_TREE], [10, 0, TILE_TREE_FALL], [12, 0, TILE_TREE], [14, 0, TILE_TREE_FALL],
+  [18, 0, TILE_TREE], [20, 0, TILE_TREE_FALL], [22, 0, TILE_TREE], [24, 0, TILE_TREE_FALL],
+  [26, 0, TILE_TREE], [28, 0, TILE_TREE], [30, 0, TILE_TREE_FALL],
+  // bottom edge (skip pond cols 28..30)
+  [0, 17, TILE_TREE], [2, 17, TILE_TREE_FALL], [4, 17, TILE_TREE], [6, 17, TILE_TREE],
+  [8, 17, TILE_TREE_FALL], [10, 17, TILE_TREE], [12, 17, TILE_TREE], [14, 17, TILE_TREE_FALL],
+  [18, 17, TILE_TREE], [20, 17, TILE_TREE], [22, 17, TILE_TREE_FALL], [24, 17, TILE_TREE],
+  [26, 17, TILE_TREE_FALL], [31, 17, TILE_TREE],
+  // side edges
+  [0, 3, TILE_TREE], [0, 6, TILE_TREE_FALL], [0, 9, TILE_TREE], [0, 12, TILE_TREE_FALL], [0, 15, TILE_TREE],
+  [31, 3, TILE_TREE_FALL], [31, 6, TILE_TREE], [31, 9, TILE_TREE_FALL], [31, 12, TILE_TREE],
+  // scattered interior greenery (clear of doors, roads and plaza)
+  [1, 8, TILE_TREE], [2, 10, TILE_BUSH], [10, 8, TILE_TREE_FALL], [11, 10, TILE_BUSH],
+  [21, 8, TILE_BUSH], [22, 10, TILE_TREE], [29, 7, TILE_TREE_FALL], [30, 9, TILE_BUSH],
+  [6, 15, TILE_TREE], [11, 16, TILE_BUSH], [20, 15, TILE_TREE_FALL], [26, 15, TILE_BUSH],
 ];
 
 function partyColor(parties: PartyData[], code: string): string {
