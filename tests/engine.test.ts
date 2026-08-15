@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { createGame, step, onHookClick, castLapp, type GameState } from '../src/engine';
-import { ROUND_MS, MAX_VOTERS, TACKLE_SIZE, LOGICAL_W, LOGICAL_H, CATEGORIES, CAST_RADIUS } from '../src/constants';
+import { createGame, step, onHookClick, castLapp, buildTrendSchedule, type GameState } from '../src/engine';
+import {
+  ROUND_MS, MAX_VOTERS, TACKLE_SIZE, LOGICAL_W, LOGICAL_H, CATEGORIES, CAST_RADIUS,
+  TREND_1_START_MS, TREND_2_START_MS, TREND_DURATION_MS, TREND_ATTRACT_BOOST, TREND_HEADLINES,
+} from '../src/constants';
 import { activeBait } from '../src/bait';
 import { buildingById, buildingRects } from '../src/world';
 import type { PromiseData, Voter } from '../src/types';
@@ -582,5 +585,135 @@ describe('visual particles and cast flight trajectory (v1.3)', () => {
     // Advance another 100ms (total 550ms) -> float_text (maxLifeMs 500) should expire
     const s3 = step(s2, 100);
     expect(s3.particles.length).toBe(0);
+  });
+});
+
+describe('campaign trends & news events (v1.3)', () => {
+  it('buildTrendSchedule creates 2 scheduled trends with valid times and headlines', () => {
+    const g = mk(42);
+    expect(g.scheduledTrends).toBeDefined();
+    expect(g.scheduledTrends!.length).toBe(2);
+
+    const [t1, t2] = g.scheduledTrends!;
+    expect(t1!.startsAtMs).toBe(TREND_1_START_MS);
+    expect(t1!.expiresAtMs).toBe(TREND_1_START_MS + TREND_DURATION_MS);
+    expect(t1!.headline).toBe(TREND_HEADLINES[t1!.category]);
+    expect(t1!.color).toMatch(/^#[0-9a-f]{6}$/i);
+
+    expect(t2!.startsAtMs).toBe(TREND_2_START_MS);
+    expect(t2!.expiresAtMs).toBe(TREND_2_START_MS + TREND_DURATION_MS);
+    expect(t2!.headline).toBe(TREND_HEADLINES[t2!.category]);
+    expect(t2!.color).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(t2!.category).not.toBe(t1!.category);
+  });
+
+  it('generates identical trend schedule with the same seed (deterministic)', () => {
+    const g1 = mk(12345);
+    const g2 = mk(12345);
+    expect(g1.scheduledTrends).toEqual(g2.scheduledTrends);
+  });
+
+  it('activates Trend 1 at 40s remaining (elapsed = 20s) and Trend 2 at 20s remaining (elapsed = 40s) in 60s round', () => {
+    const g = createGame({ party: 's', promises: PROMISES, seed: 100, roundDurationMs: 60_000 });
+    const [t1, t2] = g.scheduledTrends!;
+
+    // Initial: 0s elapsed -> no active trend
+    expect(g.activeTrend).toBeNull();
+
+    // Advance to 10s elapsed (50s remaining) -> no active trend
+    const s10 = step(g, 10_000);
+    expect(s10.activeTrend).toBeNull();
+    expect(s10.trend).toBeNull();
+
+    // Advance to 20s elapsed (40s remaining) -> Trend 1 activates
+    const s20 = step(s10, 10_000);
+    expect(s20.activeTrend).toBeDefined();
+    expect(s20.activeTrend!.category).toBe(t1!.category);
+    expect(s20.activeTrend!.headline).toBe(t1!.headline);
+    expect(s20.trend).toEqual(s20.activeTrend);
+    expect(s20.lastEvent).toEqual({ kind: 'trend', text: t1!.headline });
+
+    // Advance to 30s elapsed -> Trend 1 still active (duration 12s, ends at 32s)
+    const s30 = step(s20, 10_000);
+    expect(s30.activeTrend).toBeDefined();
+    expect(s30.activeTrend!.category).toBe(t1!.category);
+
+    // Advance to 33s elapsed -> Trend 1 expires
+    const s33 = step(s30, 3_000);
+    expect(s33.activeTrend).toBeNull();
+    expect(s33.trend).toBeNull();
+
+    // Advance to 40s elapsed (20s remaining) -> Trend 2 activates
+    const s40 = step(s33, 7_000);
+    expect(s40.activeTrend).toBeDefined();
+    expect(s40.activeTrend!.category).toBe(t2!.category);
+    expect(s40.activeTrend!.headline).toBe(t2!.headline);
+    expect(s40.lastEvent).toEqual({ kind: 'trend', text: t2!.headline });
+
+    // Advance to 53s elapsed -> Trend 2 expires (ended at 52s)
+    const s53 = step(s40, 13_000);
+    expect(s53.activeTrend).toBeNull();
+  });
+
+  it('boosts attraction notice probability by 2.5x (TREND_ATTRACT_BOOST) for matching trend category voters', () => {
+    const g = mk(77);
+    const trendCategory = 'välfärd';
+    const activeTrend = {
+      category: trendCategory as any,
+      headline: TREND_HEADLINES['välfärd'],
+      startsAtMs: 0,
+      expiresAtMs: 50_000,
+      color: '#e74c3c',
+    };
+
+    // Place a lapp carrying a välfärd bait
+    const bait = g.tackle.find((b) => b.category === 'välfärd') ?? g.tackle[0]!;
+    const matchingBait = { ...bait, category: 'välfärd' as const };
+    const tackle = [matchingBait, ...g.tackle.filter((b) => b.id !== matchingBait.id)];
+
+    const stateWithTrend: GameState = {
+      ...g,
+      tackle,
+      scheduledTrends: [activeTrend],
+      activeTrend,
+      lapp: { x: 100, y: 100, baitId: matchingBait.id, flightProgress: 1 },
+      // Place a matching voter within notice radius (50px away)
+      voters: [voter({ id: 10, x: 130, y: 100, category: 'välfärd', state: 'wander' })],
+    };
+
+    // Step with dtMs=1000 — with 2.5x boost: probability = 0.4 * 1.0 * 2.5 = 1.0 (guaranteed notice!)
+    const stepped = step(stateWithTrend, 1000);
+    const movedVoter = stepped.voters.find((v) => v.id === 10)!;
+    expect(movedVoter.state).toBe('toLapp');
+  });
+
+  it('does not boost attraction for non-matching voters or non-matching baits during a trend', () => {
+    const g = mk(77);
+    const trendCategory = 'skatter';
+    const activeTrend = {
+      category: trendCategory as any,
+      headline: TREND_HEADLINES['skatter'],
+      startsAtMs: 0,
+      expiresAtMs: 50_000,
+      color: '#f1c40f',
+    };
+
+    // Cast a välfärd bait while skatter trend is active
+    const matchingBait = { ...g.tackle[0]!, category: 'välfärd' as const };
+    const tackle = [matchingBait, ...g.tackle.slice(1)];
+
+    const stateWithTrend: GameState = {
+      ...g,
+      tackle,
+      scheduledTrends: [activeTrend],
+      activeTrend,
+      lapp: { x: 100, y: 100, baitId: matchingBait.id, flightProgress: 1 },
+      // skatter voter should not notice välfärd bait
+      voters: [voter({ id: 10, x: 130, y: 100, category: 'skatter', state: 'wander' })],
+    };
+
+    const stepped = step(stateWithTrend, 1000);
+    const skatterVoter = stepped.voters.find((v) => v.id === 10)!;
+    expect(skatterVoter.state).toBe('wander');
   });
 });

@@ -26,6 +26,24 @@ export const IDLE_MAX_MS = 1500;
 export const ATTRACT_SPEED = 34;
 export const MIN_PROMISES_PER_PARTY = 5;
 
+// Campaign Trends & News Events
+export const TREND_1_START_MS = 20_000; // Trigger at 40s remaining in 60s round (elapsed = 20s)
+export const TREND_2_START_MS = 40_000; // Trigger at 20s remaining in 60s round (elapsed = 40s)
+export const TREND_DURATION_MS = 12_000; // 12-second duration
+export const TREND_ATTRACT_BOOST = 2.5; // 2.5x attraction multiplier for matching voters
+
+export const TREND_HEADLINES: Record<Category, string> = {
+  'utbildning': 'EXTRA: Partiledardebatt om skolan och utbildning!',
+  'välfärd': 'EXTRA: Vård och välfärd i fokus i opinionsmätning!',
+  'infrastruktur': 'EXTRA: Tågkaos och infrastruktur debatteras!',
+  'skatter': 'EXTRA: Skatteförslagen i hetluften!',
+  'klimat-miljö': 'EXTRA: Klimatfrågan engagerar väljarna!',
+  'rättsväsende': 'EXTRA: Lag och ordning dominerar nyhetsflödet!',
+  'migration': 'EXTRA: Ny migrationsrapport väcker uppmärksamhet!',
+  'försvar': 'EXTRA: Säkerhetsläget och försvaret diskuteras!',
+  'övrigt': 'EXTRA: Aktuella samhällsfrågor dominerar debatten!',
+};
+
 // Angling (lapp)
 export const CAST_RADIUS = 110; // px: max cast distance from politician
 export const NOTICE_RADIUS = 80; // px: a wandering voter this close may notice the lapp

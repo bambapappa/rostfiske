@@ -98,8 +98,16 @@ export interface Rect {
   h: number;
 }
 
+export interface ActiveTrend {
+  category: Category;
+  headline: string;
+  startsAtMs: number;
+  expiresAtMs: number;
+  color: string;
+}
+
 export type GameEventKind =
-  | 'cast' | 'napp' | 'catch' | 'release' | 'miss' | 'baitWorn' | 'baitSelected';
+  | 'cast' | 'napp' | 'catch' | 'release' | 'miss' | 'baitWorn' | 'baitSelected' | 'trend';
 
 export interface GameEvent {
   kind: GameEventKind;

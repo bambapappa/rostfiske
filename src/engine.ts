@@ -1,11 +1,15 @@
 import { makeRng, type Rng } from './rng';
-import { ROUND_MS, MAX_VOTERS, TACKLE_SIZE, CAST_RADIUS, LOGICAL_W, LOGICAL_H, type PartyCode } from './constants';
+import {
+  ROUND_MS, MAX_VOTERS, TACKLE_SIZE, CAST_RADIUS, LOGICAL_W, LOGICAL_H,
+  TREND_1_START_MS, TREND_2_START_MS, TREND_DURATION_MS, TREND_ATTRACT_BOOST, TREND_HEADLINES,
+  type PartyCode, type Category,
+} from './constants';
 import { buildTackle, activeBait, baitById, wearBait } from './bait';
 import { tryEnter, tryExit, spawnAtBuilding, wanderStep } from './voter';
 import { beginBite, hookSucceeds, bittenVoterEscapes, resolveCatch, resolveMiss, moveAttracted, noticeLapp, reachedLapp } from './fishing';
 import { spotById, BUILDINGS, buildingById, buildingRects, pushOut } from './world';
-import type { PromiseData, Bait, Voter, GamePhase, SpotId, Lapp, GameEvent, Particle } from './types';
-import { catchLine } from './ui';
+import type { PromiseData, Bait, Voter, GamePhase, SpotId, Lapp, GameEvent, Particle, ActiveTrend } from './types';
+import { catchLine, CATEGORY_COLORS } from './ui';
 
 export const PARTY_COLORS: Record<PartyCode, string> = {
   s: '#e8112d',
@@ -38,6 +42,10 @@ export interface GameState {
   lastCatch: { title: string; msekBase: number; sourceUrl: string; sourceDomain: string; released: boolean } | null;
   particles: Particle[];
   nextParticleId: number;
+  activeTrend?: ActiveTrend | null;
+  trend?: ActiveTrend | null;
+  scheduledTrends?: ActiveTrend[];
+  roundDurationMs?: number;
 }
 
 export interface CreateGameOpts {
@@ -45,6 +53,38 @@ export interface CreateGameOpts {
   promises: PromiseData[];
   seed?: number;
   spotId?: SpotId;
+  roundDurationMs?: number;
+}
+
+export function buildTrendSchedule(rng: Rng, partyPromises: PromiseData[] = []): ActiveTrend[] {
+  const ISSUE_CATEGORIES: Category[] = [
+    'välfärd', 'utbildning', 'skatter', 'klimat-miljö',
+    'rättsväsende', 'migration', 'infrastruktur', 'försvar',
+  ];
+  const promiseCats = Array.from(
+    new Set(partyPromises.map((p) => p.category).filter((c): c is Category => c !== 'övrigt'))
+  );
+  const pool = promiseCats.length >= 2 ? promiseCats : ISSUE_CATEGORIES;
+  const cat1 = rng.pick(pool);
+  const cat2Pool = pool.filter((c) => c !== cat1);
+  const cat2 = cat2Pool.length > 0 ? rng.pick(cat2Pool) : rng.pick(ISSUE_CATEGORIES.filter((c) => c !== cat1));
+
+  return [
+    {
+      category: cat1,
+      headline: TREND_HEADLINES[cat1] ?? `EXTRA: ${cat1} i fokus!`,
+      startsAtMs: TREND_1_START_MS,
+      expiresAtMs: TREND_1_START_MS + TREND_DURATION_MS,
+      color: CATEGORY_COLORS[cat1] ?? '#ffe66d',
+    },
+    {
+      category: cat2,
+      headline: TREND_HEADLINES[cat2] ?? `EXTRA: ${cat2} i fokus!`,
+      startsAtMs: TREND_2_START_MS,
+      expiresAtMs: TREND_2_START_MS + TREND_DURATION_MS,
+      color: CATEGORY_COLORS[cat2] ?? '#ffe66d',
+    },
+  ];
 }
 
 export function createGame(opts: CreateGameOpts): GameState {
@@ -56,12 +96,17 @@ export function createGame(opts: CreateGameOpts): GameState {
   const tackle = buildTackle(partyPromises, rng);
   const spotId = opts.spotId ?? 'torget';
   const spot = spotById(spotId);
+  const scheduledTrends = buildTrendSchedule(rng, partyPromises);
   return {
     phase: 'playing', party: opts.party, tackle, voters: [],
     spotId, spotX: spot.x, spotY: spot.y,
-    timeLeftMs: ROUND_MS, votes: 0, released: 0, rng, nextVoterId: 1, spawnAccMs: 0,
+    timeLeftMs: opts.roundDurationMs ?? ROUND_MS, votes: 0, released: 0, rng, nextVoterId: 1, spawnAccMs: 0,
     bitingVoterId: null, lapp: null, lastEvent: null, lastCatch: null,
     particles: [], nextParticleId: 1,
+    scheduledTrends,
+    activeTrend: null,
+    trend: null,
+    roundDurationMs: opts.roundDurationMs,
   };
 }
 
@@ -135,7 +180,28 @@ export function step(state: GameState, dtMs: number): GameState {
   const timeLeftMs = Math.max(0, state.timeLeftMs - dtMs);
   if (timeLeftMs === 0) return { ...state, timeLeftMs: 0, phase: 'game_over' };
 
-  const elapsed = ROUND_MS - timeLeftMs; // game clock for hook deadlines
+  const totalDuration = state.roundDurationMs ?? ROUND_MS;
+  const elapsed = totalDuration - timeLeftMs; // game clock for hook deadlines & trends
+
+  // Trends: determine active trend from schedule
+  let scheduledTrends = state.scheduledTrends;
+  if (!scheduledTrends || scheduledTrends.length === 0) {
+    if (state.activeTrend) {
+      scheduledTrends = [state.activeTrend];
+    } else {
+      scheduledTrends = buildTrendSchedule(state.rng, []);
+    }
+  }
+
+  const currentActiveTrend = scheduledTrends.find(
+    (t) => elapsed >= t.startsAtMs && elapsed < t.expiresAtMs
+  ) ?? null;
+
+  let lastEvent = state.lastEvent;
+  const prevTrendCategory = state.activeTrend?.category ?? state.trend?.category;
+  if (currentActiveTrend && currentActiveTrend.category !== prevTrendCategory) {
+    lastEvent = { kind: 'trend', text: currentActiveTrend.headline };
+  }
 
   // advance cast trajectory flight progress
   let lapp = state.lapp;
@@ -180,7 +246,6 @@ export function step(state: GameState, dtMs: number): GameState {
   }
 
   let bitingVoterId = state.bitingVoterId;
-  let lastEvent = state.lastEvent;
   const missedIds: number[] = [];
 
   voters = voters.map((v) => {
@@ -220,7 +285,9 @@ export function step(state: GameState, dtMs: number): GameState {
       // the lapp attracts by its OWN cast bait (baitId), never by the active slot
       const lappBait = baitById(state.tackle, lapp.baitId);
       if (lappBait) {
-        const noticed = noticeLapp(v, lapp, lappBait.category, rng, dtMs);
+        const isTrendMatch = currentActiveTrend !== null && currentActiveTrend.category === lappBait.category;
+        const multiplier = isTrendMatch ? TREND_ATTRACT_BOOST : 1;
+        const noticed = noticeLapp(v, lapp, lappBait.category, rng, dtMs, multiplier);
         if (noticed.state !== 'wander') return noticed;
       }
     }
@@ -249,7 +316,22 @@ export function step(state: GameState, dtMs: number): GameState {
     lastEvent = { kind: 'miss', text: 'Missad — väljaren tog lappen och gick' };
   }
 
-  return { ...state, timeLeftMs, voters, rng, nextVoterId, spawnAccMs, bitingVoterId, lapp, lastEvent, tackle, particles };
+  return {
+    ...state,
+    timeLeftMs,
+    voters,
+    rng,
+    nextVoterId,
+    spawnAccMs,
+    bitingVoterId,
+    lapp,
+    lastEvent,
+    tackle,
+    particles,
+    scheduledTrends,
+    activeTrend: currentActiveTrend,
+    trend: currentActiveTrend,
+  };
 }
 
 export function onHookClick(state: GameState, nowMs: number): GameState {

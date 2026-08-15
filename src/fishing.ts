@@ -34,7 +34,14 @@ export function moveAttracted(v: Voter, dtMs: number): Voter {
   };
 }
 
-export function noticeLapp(v: Voter, lapp: Lapp, lappCategory: Category, rng: Rng, dtMs: number): Voter {
+export function noticeLapp(
+  v: Voter,
+  lapp: Lapp,
+  lappCategory: Category,
+  rng: Rng,
+  dtMs: number,
+  attractMultiplier: number = 1
+): Voter {
   // Only wanderers can notice
   if (v.state !== 'wander') return v;
 
@@ -46,7 +53,7 @@ export function noticeLapp(v: Voter, lapp: Lapp, lappCategory: Category, rng: Rn
   if (v.category !== lappCategory) return v;
 
   // Probability check (dtMs=0 → probability 0 → never)
-  const probability = NOTICE_PROB_PER_SEC * (dtMs / 1000);
+  const probability = NOTICE_PROB_PER_SEC * (dtMs / 1000) * attractMultiplier;
   if (!rng.bool(probability)) return v;
 
   // All checks passed → transition to toLapp
@@ -59,6 +66,9 @@ export function noticeLapp(v: Voter, lapp: Lapp, lappCategory: Category, rng: Rn
 }
 
 export function reachedLapp(v: Voter, lapp: Lapp): boolean {
+  if (lapp.flightProgress !== undefined && lapp.flightProgress < 1) {
+    return false;
+  }
   const dist = Math.hypot(v.x - lapp.x, v.y - lapp.y);
   return dist <= PICKUP_DIST;
 }

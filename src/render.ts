@@ -189,12 +189,30 @@ export function drawScene(ctx: CanvasRenderingContext2D, state: GameState, sprit
       ctx.restore();
     } else {
       // landed note
-      ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+      const activeTrend = state.activeTrend ?? state.trend;
+      const lappBait = state.tackle.find((b) => b.id === state.lapp!.baitId);
+      const isTrendMatch = activeTrend && lappBait && lappBait.category === activeTrend.category;
+
+      ctx.strokeStyle = isTrendMatch ? (activeTrend.color || '#ffe66d') : 'rgba(255,255,255,0.7)';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(state.spotX, state.spotY - 10);
       ctx.lineTo(x, y - 2);
       ctx.stroke();
+
+      if (isTrendMatch) {
+        // subtle pulse aura around trending note
+        const pulse = Math.sin(nowMs / 120) * 1.5 + 4;
+        ctx.save();
+        ctx.strokeStyle = activeTrend.color || '#ffe66d';
+        ctx.globalAlpha = 0.6;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(x + 0.5, y - 1, pulse, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
       ctx.fillStyle = '#fff'; // small white paper
       ctx.fillRect(Math.round(x) - 2, Math.round(y) - 3, 5, 4);
     }
@@ -303,4 +321,57 @@ export function drawScene(ctx: CanvasRenderingContext2D, state: GameState, sprit
   ctx.fillText(`Röster: ${state.votes}`, 4, 10);
   ctx.fillText(`Släppta: ${state.released}`, 4, 20);
   ctx.fillText(`Tid: ${Math.ceil(state.timeLeftMs / 1000)}s`, 4, 30);
+
+  // --- active trend breaking news banner (slides down from top of canvas) ---
+  const activeTrend = state.activeTrend ?? state.trend;
+  if (activeTrend) {
+    const totalDuration = state.roundDurationMs ?? ROUND_MS;
+    const elapsed = totalDuration - state.timeLeftMs;
+    const trendAge = Math.max(0, elapsed - activeTrend.startsAtMs);
+    const trendRemaining = Math.max(0, activeTrend.expiresAtMs - elapsed);
+
+    // Slide animation: 350ms slide-in, 350ms slide-out
+    const slideIn = Math.min(1, trendAge / 350);
+    const slideOut = Math.min(1, trendRemaining / 350);
+    const slide = Math.min(slideIn, slideOut);
+    const bannerH = 16;
+    const bannerY = -bannerH + bannerH * slide;
+
+    const accentColor = activeTrend.color || CATEGORY_COLORS[activeTrend.category] || '#ffe66d';
+
+    ctx.save();
+    // Banner dark slate bar
+    ctx.fillStyle = 'rgba(12, 14, 26, 0.94)';
+    ctx.fillRect(0, bannerY, LOGICAL_W, bannerH);
+
+    // Bottom accent border (2px)
+    ctx.fillStyle = accentColor;
+    ctx.fillRect(0, bannerY + bannerH - 2, LOGICAL_W, 2);
+
+    // Badge: Category / EXTRA pill
+    ctx.fillStyle = accentColor;
+    ctx.fillRect(6, bannerY + 2, 42, bannerH - 6);
+
+    ctx.fillStyle = '#10121f';
+    ctx.font = 'bold 7px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('EXTRA', 27, bannerY + 9);
+
+    // Headline
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 7px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(activeTrend.headline, 54, bannerY + 9);
+
+    // Mini duration timer / countdown bar at right edge
+    const totalTrendTime = activeTrend.expiresAtMs - activeTrend.startsAtMs;
+    if (totalTrendTime > 0) {
+      const frac = Math.max(0, Math.min(1, trendRemaining / totalTrendTime));
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.fillRect(LOGICAL_W - 50, bannerY + 6, 44, 3);
+      ctx.fillStyle = accentColor;
+      ctx.fillRect(LOGICAL_W - 50, bannerY + 6, Math.round(44 * frac), 3);
+    }
+    ctx.restore();
+  }
 }

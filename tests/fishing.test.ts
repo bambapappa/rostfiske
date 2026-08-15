@@ -133,6 +133,16 @@ describe('reachedLapp', () => {
     const lapp = lappAt(100, 100);
     expect(reachedLapp(v, lapp)).toBe(true);
   });
+  it('returns false if note is in mid-air (flightProgress < 1)', () => {
+    const v = wandering({ x: 100, y: 100 });
+    const lapp: Lapp = { x: 100, y: 100, baitId: 'b-1', flightProgress: 0.5 };
+    expect(reachedLapp(v, lapp)).toBe(false);
+  });
+  it('returns true once landing is complete (flightProgress >= 1)', () => {
+    const v = wandering({ x: 100, y: 100 });
+    const lapp: Lapp = { x: 100, y: 100, baitId: 'b-1', flightProgress: 1 };
+    expect(reachedLapp(v, lapp)).toBe(true);
+  });
   it('works diagonally', () => {
     const v = wandering({ x: 0, y: 0 });
     const lapp = lappAt(3, 3); // sqrt(18) ≈ 4.24 > 4, but still close

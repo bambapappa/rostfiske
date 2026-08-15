@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { Bait, Voter, VoterAge, GamePhase, Lapp, Building, GameEvent } from '../src/types';
+import type { Bait, Voter, VoterAge, GamePhase, Lapp, Building, GameEvent, ActiveTrend } from '../src/types';
 import { BAIT_DURABILITY } from '../src/constants';
 
 describe('domain types', () => {
@@ -35,8 +35,20 @@ describe('domain types', () => {
   });
 
   it('ett game event har kind och text', () => {
-    const e: GameEvent = { kind: 'cast', text: 'Du kastar ut lappen' };
-    expect(e.kind).toBe('cast');
+    const e: GameEvent = { kind: 'trend', text: 'EXTRA: Nyheter' };
+    expect(e.kind).toBe('trend');
+  });
+
+  it('an active trend has category, headline, startsAtMs, expiresAtMs, color', () => {
+    const t: ActiveTrend = {
+      category: 'utbildning',
+      headline: 'EXTRA: Skoldebatt',
+      startsAtMs: 20_000,
+      expiresAtMs: 32_000,
+      color: '#f39c12',
+    };
+    expect(t.category).toBe('utbildning');
+    expect(t.expiresAtMs - t.startsAtMs).toBe(12_000);
   });
 
   it('phase is one of the fixed states', () => {

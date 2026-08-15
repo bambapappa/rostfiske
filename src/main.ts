@@ -67,6 +67,7 @@ async function main(): Promise<void> {
     let prevEvent: GameState['lastEvent'] = null;
     let prevCatch: GameState['lastCatch'] = null;
     let prevBitingId: number | null = null;
+    let prevTrendCategory: string | null = null;
     // tackle-panel change detection: the engine treats tackle immutably, so
     // array identity only changes when a bait wears, is swapped to front, or
     // the active bait id changes (same trick as lastEvent above)
@@ -120,6 +121,15 @@ async function main(): Promise<void> {
     function frame(t: number): void {
       const dt = Math.min(250, t - now); now = t; acc += dt;
       while (acc >= STEP) { g = step(g, STEP); acc -= STEP; }
+
+      // Trend sfx: trigger when active trend starts
+      const currentTrend = g.activeTrend ?? g.trend;
+      if (currentTrend && currentTrend.category !== prevTrendCategory) {
+        prevTrendCategory = currentTrend.category;
+        playSound('trend');
+      } else if (!currentTrend) {
+        prevTrendCategory = null;
+      }
 
       // Biting sfx: trigger when a voter begins biting
       if (g.bitingVoterId !== null && prevBitingId === null) {

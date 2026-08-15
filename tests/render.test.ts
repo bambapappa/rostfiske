@@ -272,4 +272,55 @@ describe('drawScene', () => {
     const flyingPaper = rects.find((r) => Math.abs(r.x - 148) <= 1 && Math.abs(r.y - 94) <= 1 && r.w === 5 && r.h === 4);
     expect(flyingPaper).toBeDefined();
   });
+
+  it('renders animated breaking news banner with headline and EXTRA badge when trend is active (v1.3)', () => {
+    const headline = 'EXTRA: Partiledardebatt om skolan och utbildning!';
+    const g = {
+      ...createGame({ party: 's', promises }),
+      timeLeftMs: ROUND_MS - 25_000, // 25s elapsed (within 20s..32s trend window)
+      activeTrend: {
+        category: 'utbildning' as const,
+        headline,
+        startsAtMs: 20_000,
+        expiresAtMs: 32_000,
+        color: '#f39c12',
+      },
+    };
+    const { ctx, texts, rects } = stubCtx();
+    expect(() => drawScene(ctx, g, new Map(), parties, 0)).not.toThrow();
+    expect(texts).toContain('EXTRA');
+    expect(texts).toContain(headline);
+    // Dark banner rect across logical width (w=512, h=16)
+    const bannerRect = rects.find((r) => r.w === 512 && r.h === 16);
+    expect(bannerRect).toBeDefined();
+  });
+
+  it('does not render breaking news banner when no trend is active (v1.3)', () => {
+    const g = {
+      ...createGame({ party: 's', promises }),
+      activeTrend: null,
+    };
+    const { ctx, texts } = stubCtx();
+    drawScene(ctx, g, new Map(), parties, 0);
+    expect(texts.includes('EXTRA')).toBe(false);
+  });
+
+  it('renders halo highlight around matching landed lapp when trend is active (v1.3)', () => {
+    const g = {
+      ...createGame({ party: 's', promises }),
+      lapp: { x: 150, y: 120, baitId: 'p0', flightProgress: 1 },
+      activeTrend: {
+        category: 'välfärd' as const,
+        headline: 'EXTRA: Vård och välfärd i fokus i opinionsmätning!',
+        startsAtMs: 20_000,
+        expiresAtMs: 32_000,
+        color: '#e74c3c',
+      },
+    };
+    const { ctx, arcCalls } = stubCtx();
+    expect(() => drawScene(ctx, g, new Map(), parties, 1000)).not.toThrow();
+    // Halo arc centered at lapp coordinates (150.5, 119)
+    const halo = arcCalls.find((a) => Math.abs(a.x - 150.5) <= 1 && Math.abs(a.y - 119) <= 1);
+    expect(halo).toBeDefined();
+  });
 });
