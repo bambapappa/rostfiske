@@ -59,15 +59,18 @@ describe('drawScene', () => {
     expect(() => drawScene(stubCtx().ctx, g, new Map(), parties, 0)).not.toThrow();
   });
 
-  it('renders the bait source domain in the HUD (CC BY 4.0 attribution)', () => {
+  it('HUD keeps röster/släppta/tid but no bait line (v1.2: moved to the tackle panel)', () => {
     const g = createGame({ party: 's', promises: promises.map((p, i) => ({ ...p, title: 'Löfte ' + i, source: { url: 'https://utlovat.se/p/' + i, domain: 'utlovat.se' } })) });
     const { ctx, texts } = stubCtx();
     drawScene(ctx, g, new Map(), parties, 0);
+    expect(texts.some((t) => t.startsWith('Röster:'))).toBe(true);
+    expect(texts.some((t) => t.startsWith('Släppta:'))).toBe(true);
+    expect(texts.some((t) => t.startsWith('Tid:'))).toBe(true);
+    // bait line (title, durability, source domain, "Inget bete!") is gone from the canvas
     const bait = g.tackle[0]!;
-    const hud = texts.find((t) => t.includes(bait.title.slice(0, 18)));
-    expect(hud).toBeDefined();
-    expect(hud!).toContain('utlovat.se');
-    expect(hud!).toContain(`(${bait.durability})`);
+    expect(texts.some((t) => t.includes(bait.title.slice(0, 18)))).toBe(false);
+    expect(texts.some((t) => t.includes('utlovat.se'))).toBe(false);
+    expect(texts.includes('Inget bete!')).toBe(false);
   });
 
   it('draws the lapp paper and the fishing line when a lapp is cast', () => {

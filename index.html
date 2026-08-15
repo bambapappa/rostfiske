@@ -12,12 +12,24 @@
     #select{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;width:min(96vw,1152px);margin:6px 0;}
     #select .party-option{font:inherit;font-size:13px;padding:10px 4px;color:#fff;background:#1a1c2c;border:2px solid #888;cursor:pointer;}
     #select .party-option:hover{background:#262a44;}
+    /* tackle panel: 5 identical slots (neutrality); bait line moved here from the canvas HUD */
+    #tackle{display:flex;gap:4px;width:min(96vw,1152px);margin:6px 0;}
+    #tackle .slot{flex:1;min-width:0;display:flex;gap:5px;align-items:flex-start;font-size:11px;line-height:1.3;background:#1a1c2c;border:2px solid #444;padding:4px 5px;cursor:pointer;}
+    #tackle .slot.active{border-color:#ffe66d;}
+    #tackle .slot.worn{opacity:0.4;cursor:default;}
+    #tackle .slot .hint{color:#888;flex:none;}
+    #tackle .slot .chip{width:8px;height:8px;flex:none;margin-top:2px;border:1px solid #000;}
+    #tackle .slot .slot-main{min-width:0;}
+    #tackle .slot .title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    #tackle .slot .pips{letter-spacing:1px;font-size:10px;}
+    #tackle .slot .source{color:#888;font-size:10px;}
   </style>
 </head>
 <body>
   <div id="wrap">
     <div id="select" aria-label="Välj partiledare"></div>
     <canvas id="game"></canvas>
+    <div id="tackle" aria-label="Beteslådan"></div>
     <div id="overlay">Välj en partiledare ovan för att börja — klicka = kasta lapp/mothugg, mellanslag = mothugg, Q/W/E/R = plats, 1–5 = bete</div>
   </div>
   <script type="module" src="/src/main.ts"></script>

@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { formatSummary, catchLine, eventText, showCharacterSelect } from '../src/ui';
+import { formatSummary, catchLine, eventText, showCharacterSelect, renderTackle, CATEGORY_COLORS } from '../src/ui';
 import { createGame, castLapp, onHookClick } from '../src/engine';
-import { PARTIES } from '../src/constants';
-import type { GameEvent, PartyData } from '../src/types';
+import { PARTIES, CATEGORIES, type Category } from '../src/constants';
+import type { GameEvent, PartyData, Bait } from '../src/types';
 import type { PartyCode } from '../src/constants';
 
 describe('formatSummary', () => {
@@ -65,6 +65,7 @@ interface FakeEl {
   children: FakeEl[];
   listeners: Record<string, Array<(e: unknown) => void>>;
   appendChild(c: FakeEl): FakeEl;
+  replaceChildren(): void;
   addEventListener(t: string, fn: (e: unknown) => void): void;
 }
 
@@ -73,6 +74,7 @@ function fakeEl(tag: string): FakeEl {
     tag, textContent: '', title: '', type: '', className: '',
     style: {}, children: [], listeners: {},
     appendChild(c) { el.children.push(c); return el; },
+    replaceChildren() { el.children.length = 0; },
     addEventListener(t, fn) { (el.listeners[t] ??= []).push(fn); },
   };
   return el;
@@ -150,5 +152,134 @@ describe('eventText over engine-produced events (spec strings at their source)',
     const s = onHookClick(biting, elapsed);
     expect(s.lastEvent?.kind).toBe('catch');
     expect(eventText(s.lastEvent!)).toBe(`Fångst: ${bait.title} · kostnad ${bait.msekBase} msek · källa ex.se (https://ex.se/p/${promises.findIndex((p) => p.title === bait.title)})`);
+  });
+});
+
+// ---- CATEGORY_COLORS + renderTackle (v1.2 tackle panel) ----
+
+function mkBait(i: number, partial: Partial<Bait> = {}): Bait {
+  return {
+    id: 'b' + i, title: 'Bete ' + i, quote: 'q', category: 'välfärd', party: 's',
+    msekBase: 1000, sourceUrl: 'https://ex.se/' + i, sourceDomain: 'ex.se',
+    durability: 6, maxDurability: 6, ...partial,
+  };
+}
+
+/** Find a fake descendant (depth-first) by one of its space-separated classes. */
+function byClass(el: FakeEl, cls: string): FakeEl | undefined {
+  for (const c of el.children) {
+    if (c.className.split(' ').includes(cls)) return c;
+    const hit = byClass(c, cls);
+    if (hit) return hit;
+  }
+  return undefined;
+}
+
+describe('CATEGORY_COLORS', () => {
+  it('covers every category with a distinct hex color', () => {
+    for (const c of CATEGORIES) expect(CATEGORY_COLORS[c as Category]).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(new Set(Object.values(CATEGORY_COLORS)).size).toBe(CATEGORIES.length);
+  });
+});
+
+describe('renderTackle', () => {
+  const g = globalThis as Record<string, unknown>;
+  beforeEach(() => {
+    g.document = { createElement: (tag: string) => fakeEl(tag) };
+  });
+  afterEach(() => {
+    delete g.document;
+  });
+
+  it('renders one slot per bait (5), in tackle order, with 1–5 index hints', () => {
+    const tackle = Array.from({ length: 5 }, (_, i) => mkBait(i));
+    const container = fakeEl('div');
+    renderTackle(container as unknown as HTMLElement, tackle, 'b0', () => {});
+    expect(container.children).toHaveLength(5);
+    container.children.forEach((slot, i) => {
+      expect(slot.tag).toBe('div');
+      expect(slot.className.split(' ')).toContain('slot');
+      expect(byClass(slot, 'hint')!.textContent).toBe(String(i + 1));
+      expect(byClass(slot, 'title')!.textContent).toContain(tackle[i]!.title);
+    });
+  });
+
+  it('pips = ▮ per remaining durability + ▯ outline remainder', () => {
+    const tackle = Array.from({ length: 5 }, (_, i) => mkBait(i, { durability: i, maxDurability: 6 }));
+    const container = fakeEl('div');
+    renderTackle(container as unknown as HTMLElement, tackle, null, () => {});
+    container.children.forEach((slot, i) => {
+      expect(byClass(slot, 'pips')!.textContent).toBe('▮'.repeat(i) + '▯'.repeat(6 - i));
+    });
+  });
+
+  it('marks the active slot and dims worn slots', () => {
+    const tackle = [mkBait(0, { durability: 0 }), mkBait(1), mkBait(2), mkBait(3), mkBait(4)];
+    const container = fakeEl('div');
+    renderTackle(container as unknown as HTMLElement, tackle, 'b1', () => {});
+    expect(container.children[0]!.className.split(' ')).toContain('worn');
+    expect(container.children[0]!.className.split(' ')).not.toContain('active');
+    expect(container.children[1]!.className.split(' ')).toContain('active');
+    expect(container.children[1]!.className.split(' ')).not.toContain('worn');
+  });
+
+  it('truncates long titles to ~18 chars with an ellipsis', () => {
+    const long = 'Ett väldigt långt vallöfte som inte får plats';
+    const tackle = Array.from({ length: 5 }, (_, i) => mkBait(i, { title: i === 0 ? long : 'kort' }));
+    const container = fakeEl('div');
+    renderTackle(container as unknown as HTMLElement, tackle, null, () => {});
+    const title = byClass(container.children[0]!, 'title')!.textContent;
+    expect(title.length).toBeLessThanOrEqual(18);
+    expect(title.startsWith(long.slice(0, 17))).toBe(true);
+    expect(title.endsWith('…')).toBe(true);
+    expect(byClass(container.children[1]!, 'title')!.textContent).toBe('kort');
+  });
+
+  it('shows sourceDomain as subtext on the active slot only (CC BY 4.0)', () => {
+    const tackle = Array.from({ length: 5 }, (_, i) => mkBait(i, { sourceDomain: 'doman' + i + '.se' }));
+    const container = fakeEl('div');
+    renderTackle(container as unknown as HTMLElement, tackle, 'b2', () => {});
+    expect(byClass(container.children[2]!, 'source')!.textContent).toBe('doman2.se');
+    container.children.forEach((slot, i) => {
+      if (i !== 2) expect(byClass(slot, 'source')).toBeUndefined();
+    });
+  });
+
+  it('colors each chip from CATEGORY_COLORS', () => {
+    const tackle = Array.from({ length: 5 }, (_, i) => mkBait(i, { category: CATEGORIES[i] as Category }));
+    const container = fakeEl('div');
+    renderTackle(container as unknown as HTMLElement, tackle, null, () => {});
+    container.children.forEach((slot, i) => {
+      expect(byClass(slot, 'chip')!.style.background).toBe(CATEGORY_COLORS[CATEGORIES[i] as Category]);
+    });
+  });
+
+  it('clicking a live slot calls onSelect with its index; worn slots do nothing', () => {
+    const tackle = [mkBait(0, { durability: 0 }), mkBait(1), mkBait(2), mkBait(3), mkBait(4)];
+    const container = fakeEl('div');
+    const picked: number[] = [];
+    renderTackle(container as unknown as HTMLElement, tackle, 'b1', (i) => picked.push(i));
+    container.children[2]!.listeners['click']![0]!({});
+    expect(picked).toEqual([2]);
+    expect(container.children[0]!.listeners['click']).toBeUndefined();
+  });
+
+  it('rebuilds on every call — a re-render with new tackle replaces the slots', () => {
+    const container = fakeEl('div');
+    renderTackle(container as unknown as HTMLElement, Array.from({ length: 5 }, (_, i) => mkBait(i)), null, () => {});
+    renderTackle(container as unknown as HTMLElement, Array.from({ length: 5 }, (_, i) => mkBait(10 + i, { title: 'nytt ' + i })), null, () => {});
+    expect(container.children).toHaveLength(5);
+    expect(byClass(container.children[0]!, 'title')!.textContent).toBe('nytt 0');
+  });
+
+  it('is party-neutral: slot markup contains no party comparison or winner framing', () => {
+    const tackle = Array.from({ length: 5 }, (_, i) => mkBait(i, { party: PARTIES[i] as PartyCode }));
+    const container = fakeEl('div');
+    renderTackle(container as unknown as HTMLElement, tackle, 'b0', () => {});
+    for (const slot of container.children) {
+      const all = [slot.title, slot.className, ...slot.children.flatMap((c) => [c.textContent, c.className])].join(' ').toLowerCase();
+      expect(all).not.toContain('vann');
+      expect(all).not.toContain('bäst');
+    }
   });
 });

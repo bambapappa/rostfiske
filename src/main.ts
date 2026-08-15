@@ -4,7 +4,8 @@ import { createGame, step, onHookClick, castLapp, type GameState } from './engin
 import { drawScene } from './render';
 import { bindInput } from './input';
 import { loadStore, saveStore, addScore, bestOf } from './highscore';
-import { eventText, showCharacterSelect } from './ui';
+import { eventText, showCharacterSelect, renderTackle } from './ui';
+import { activeBait } from './bait';
 import { LOGICAL_W, LOGICAL_H, ROUND_MS, type PartyCode } from './constants';
 import { spotById } from './world';
 
@@ -17,6 +18,7 @@ async function main(): Promise<void> {
   const [{ promises, parties }, sprites] = await Promise.all([fetchGameInput(), loadSprites()]);
   const store = loadStore();
   const overlay = document.getElementById('overlay');
+  const tacklePanel = document.getElementById('tackle');
 
   // Start flow: character select → game. All 8 parties presented identically.
   const select = document.getElementById('select');
@@ -37,6 +39,21 @@ async function main(): Promise<void> {
     let acc = 0;
     const STEP = 1000 / 60;
     let prevEvent: GameState['lastEvent'] = null;
+    // tackle-panel change detection: the engine treats tackle immutably, so
+    // array identity only changes when a bait wears, is swapped to front, or
+    // the active bait id changes (same trick as lastEvent above)
+    let prevTackle: GameState['tackle'] | null = null;
+    let prevActiveId: string | null | undefined;
+
+    // shared bait selection: the 1–5 keys and the panel clicks use this
+    const selectBait = (slot: number): void => {
+      const b = g.tackle[slot]; if (!b) return;
+      g = {
+        ...g,
+        tackle: [b, ...g.tackle.filter((x) => x !== b)],
+        lastEvent: { kind: 'baitSelected', text: `Bete ${slot + 1}: ${b.title}` },
+      };
+    };
 
     const unbind = bindInput(canvas, {
       onSpot: (id) => {
@@ -45,14 +62,7 @@ async function main(): Promise<void> {
       },
       onHook: () => { g = onHookClick(g, ROUND_MS - g.timeLeftMs); },
       onCast: (x, y) => { g = castLapp(g, x, y); },
-      onSelectBait: (slot) => {
-        const b = g.tackle[slot]; if (!b) return;
-        g = {
-          ...g,
-          tackle: [b, ...g.tackle.filter((x) => x !== b)],
-          lastEvent: { kind: 'baitSelected', text: `Bete ${slot + 1}: ${b.title}` },
-        };
-      },
+      onSelectBait: selectBait,
       isBiting: () => g.bitingVoterId !== null,
     });
 
@@ -63,6 +73,13 @@ async function main(): Promise<void> {
       if (g.lastEvent !== null && g.lastEvent !== prevEvent) {
         prevEvent = g.lastEvent;
         if (overlay) overlay.textContent = eventText(g.lastEvent);
+      }
+      // tackle panel: rebuild only when the tackle array or active bait changed
+      const activeId = activeBait(g.tackle)?.id ?? null;
+      if (tacklePanel && (g.tackle !== prevTackle || activeId !== prevActiveId)) {
+        prevTackle = g.tackle;
+        prevActiveId = activeId;
+        renderTackle(tacklePanel, g.tackle, activeId, selectBait);
       }
       drawScene(ctx, g, sprites, parties, t);
       if (g.phase === 'game_over') {

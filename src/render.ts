@@ -1,6 +1,6 @@
 import { LOGICAL_W, LOGICAL_H, TOWN_COLS, TOWN_ROWS, ROUND_MS, HOOK_WINDOW_MS, PARTIES, CAST_RADIUS, LEADER_W, LEADER_H } from './constants';
 import { SPOTS, BUILDINGS } from './world';
-import { activeBait } from './bait';
+import { CATEGORY_COLORS } from './ui';
 import type { GameState } from './engine';
 import type { SheetMap } from './sprites';
 import type { PartyData, Voter } from './types';
@@ -173,7 +173,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, state: GameState, sprit
       // feet at the voter position: adults' shoes at cell y14, minors' at y13
       ctx.drawImage(voterImg, sx, sy, 16, 16, Math.round(v.x) - 8, Math.round(v.y) - (minor ? 13 : 14), 16, 16);
     } else {
-      ctx.fillStyle = v.category === 'välfärd' ? '#e74c3c' : '#fff';
+      ctx.fillStyle = CATEGORY_COLORS[v.category] ?? '#fff';
       ctx.fillRect(Math.round(v.x) - 3, Math.round(v.y) - 3, minor ? 5 : 7, minor ? 5 : 7);
     }
   }
@@ -210,13 +210,10 @@ export function drawScene(ctx: CanvasRenderingContext2D, state: GameState, sprit
     ctx.fillRect(state.spotX - 3, state.spotY - 12, 6, 12);
   }
 
-  // --- HUD (unchanged; sourceDomain stays in the bait label, CC BY 4.0) ---
-  const bait = activeBait(state.tackle);
+  // --- HUD (v1.2: bait line moved to the #tackle DOM panel; sourceDomain
+  //     shows on the panel's active slot, full source on each catch splash) ---
   ctx.fillStyle = '#fff'; ctx.font = '7px monospace'; ctx.textAlign = 'left';
   ctx.fillText(`Röster: ${state.votes}`, 4, 10);
   ctx.fillText(`Släppta: ${state.released}`, 4, 20);
   ctx.fillText(`Tid: ${Math.ceil(state.timeLeftMs / 1000)}s`, 4, 30);
-  ctx.textAlign = 'right';
-  ctx.fillText(bait ? `${bait.title.slice(0,18)} (${bait.durability}) · ${bait.sourceDomain}` : 'Inget bete!', LOGICAL_W - 4, 10);
-  ctx.textAlign = 'left';
 }
