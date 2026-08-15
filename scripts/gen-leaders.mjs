@@ -12,7 +12,7 @@
 // factual representation, not exaggeration.
 //
 // Leaders (v1.2.1 corrections per the user's party-source links):
-//   s  Magdalena Andersson   kvinna, mörkbrunt hår i knut
+//   s  Magdalena Andersson   kvinna, blont hår i knut/uppsättning
 //   m  Ulf Kristersson       man, glasögon, grånat hår, sidbena
 //   sd Jimmie Åkesson        man, mörkhårigt välkammat, kostym
 //   c  Elisabeth Thand Ringqvist kvinna, ljust/blond hår
@@ -50,7 +50,7 @@ const STUBBLE = '#8a7466';
 const LEADERS = [
   {
     code: 's', name: 'Magdalena Andersson', gender: 'kvinna',
-    suit: '#E8112d', skin: '#ecc19c', hair: '#3a2418',
+    suit: '#E8112d', skin: '#ecc19c', hair: '#e4cf8c',
     hairStyle: 'bun',
   },
   {

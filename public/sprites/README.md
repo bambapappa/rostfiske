@@ -16,7 +16,7 @@ All art is CC0 (public domain). Sources and licenses:
   search-verified 2026-08-15):
   | Cell | Parti | Ledare | Kännetecken i spriten |
   |---|---|---|---|
-  | 0 | s | Magdalena Andersson | kvinna, mörkbrunt hår i knut |
+  | 0 | s | Magdalena Andersson | kvinna, blont hår i knut/uppsättning |
   | 1 | m | Ulf Kristersson | man, glasögon, grånat hår, sidbena |
   | 2 | sd | Jimmie Åkesson | man, mörkhårigt välkammat, kostym |
   | 3 | c | Elisabeth Thand Ringqvist | kvinna, ljust/blondt axellångt hår |
