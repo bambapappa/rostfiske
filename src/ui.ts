@@ -188,3 +188,33 @@ export function renderBuildingBadges(
     container.appendChild(btn);
   }
 }
+
+/** Render a clean, crisp game over overlay modal over the game stage. */
+export function showGameOverModal(
+  container: HTMLElement,
+  state: GameState,
+  bestScore: number,
+  onRestart: () => void,
+): void {
+  container.replaceChildren();
+  const modal = document.createElement('div');
+  modal.className = 'game-over-modal';
+
+  const title = document.createElement('h2');
+  title.textContent = 'Valdagen är över';
+  modal.appendChild(title);
+
+  const stats = document.createElement('div');
+  stats.className = 'stats-row';
+  stats.innerHTML = `<span>Röster: <strong>${state.votes}</strong></span><span>Släppta: <strong>${state.released}</strong></span><span>Bäst: <strong>${bestScore}</strong></span>`;
+  modal.appendChild(stats);
+
+  const restartBtn = document.createElement('button');
+  restartBtn.type = 'button';
+  restartBtn.className = 'restart-btn';
+  restartBtn.textContent = 'Spela igen';
+  restartBtn.addEventListener('click', onRestart);
+  modal.appendChild(restartBtn);
+
+  container.appendChild(modal);
+}

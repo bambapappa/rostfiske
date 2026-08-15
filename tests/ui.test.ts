@@ -387,3 +387,30 @@ describe('renderBuildingBadges', () => {
   });
 });
 
+describe('showGameOverModal', () => {
+  const g = globalThis as unknown as { document?: { createElement: (t: string) => FakeEl } };
+  beforeEach(() => {
+    g.document = { createElement: (tag: string) => fakeEl(tag) };
+  });
+  afterEach(() => {
+    delete g.document;
+  });
+
+  it('renders a modal with title, score stats and restart button', async () => {
+    const { showGameOverModal } = await import('../src/ui');
+    const container = fakeEl('div');
+    let restarted = false;
+    const gameState = { votes: 8, released: 2 } as import('../src/engine').GameState;
+    showGameOverModal(container as unknown as HTMLElement, gameState, 10, () => { restarted = true; });
+    expect(container.children).toHaveLength(1);
+    const modal = container.children[0]!;
+    expect(modal.className).toBe('game-over-modal');
+    const title = modal.children.find((c) => c.tag === 'h2')!;
+    expect(title.textContent).toBe('Valdagen är över');
+    const btn = modal.children.find((c) => c.tag === 'button')!;
+    expect(btn.textContent).toBe('Spela igen');
+    btn.listeners['click']![0]!({});
+    expect(restarted).toBe(true);
+  });
+});
+

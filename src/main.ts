@@ -4,7 +4,7 @@ import { createGame, step, onHookClick, castLapp, type GameState } from './engin
 import { drawScene } from './render';
 import { bindInput } from './input';
 import { loadStore, saveStore, addScore, bestOf } from './highscore';
-import { eventText, showCharacterSelect, renderTackle, renderBuildingBadges } from './ui';
+import { eventText, showCharacterSelect, renderTackle, renderBuildingBadges, showGameOverModal } from './ui';
 import { activeBait } from './bait';
 import { LOGICAL_W, LOGICAL_H, ROUND_MS, type PartyCode } from './constants';
 import { SPOTS, spotById } from './world';
@@ -99,6 +99,11 @@ async function main(): Promise<void> {
         const rows = addScore(store, { party: g.party, votes: g.votes, released: g.released, at: Date.now() });
         saveStore(rows);
         drawGameOver(ctx, g, bestOf(rows));
+        if (badgesContainer) {
+          showGameOverModal(badgesContainer, g, bestOf(rows), () => {
+            window.location.reload();
+          });
+        }
         return;
       }
       requestAnimationFrame(frame);
