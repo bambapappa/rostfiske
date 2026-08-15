@@ -52,6 +52,31 @@
       font-size:9px;
     }
 
+    /* Sleek audio toggle button */
+    #mute-btn{
+      position:absolute;
+      top:8px;
+      right:8px;
+      background:rgba(16, 18, 31, 0.85);
+      border:1px solid rgba(255, 255, 255, 0.25);
+      border-radius:3px;
+      color:#fff;
+      font-size:14px;
+      padding:3px 8px;
+      cursor:pointer;
+      user-select:none;
+      z-index:6;
+      box-shadow:0 2px 4px rgba(0,0,0,0.6);
+      transition:all 0.15s ease-out;
+    }
+    #mute-btn:hover{
+      background:rgba(38, 42, 68, 0.98);
+      border-color:#ffe66d;
+      color:#ffe66d;
+      transform:scale(1.05);
+      box-shadow:0 3px 6px rgba(0,0,0,0.8);
+    }
+
     #tackle{display:flex;gap:4px;width:min(96vw,1152px);margin:6px 0;}
     #tackle .slot{flex:1;min-width:0;display:flex;gap:5px;align-items:flex-start;font-size:11px;line-height:1.3;background:#1a1c2c;border:2px solid #444;padding:4px 5px;cursor:pointer;}
     #tackle .slot.active{border-color:#ffe66d;}
@@ -125,6 +150,7 @@
     <div id="stage">
       <canvas id="game"></canvas>
       <div id="badges" aria-label="Platser"></div>
+      <button id="mute-btn" type="button" aria-label="Slå av ljud" title="Slå av ljud">🔊</button>
     </div>
     <div id="tackle" aria-label="Beteslådan"></div>
     <div id="overlay">Välj en partiledare ovan för att börja — klicka på en byggnad för att gå dit · klicka på marken för att kasta · mellanslag = mothugg · 1–5 = bete</div>

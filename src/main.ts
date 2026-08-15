@@ -9,6 +9,7 @@ import { activeBait } from './bait';
 import { LOGICAL_W, LOGICAL_H, ROUND_MS, type PartyCode } from './constants';
 import { SPOTS, spotById } from './world';
 import type { SpotId } from './types';
+import { initAudio, playSound, toggleMute, isMuted } from './audio';
 
 async function main(): Promise<void> {
   const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -21,12 +22,34 @@ async function main(): Promise<void> {
   const overlay = document.getElementById('overlay');
   const tacklePanel = document.getElementById('tackle');
   const badgesContainer = document.getElementById('badges');
+  const muteBtn = document.getElementById('mute-btn') as HTMLButtonElement | null;
+
+  const updateMuteUi = (): void => {
+    if (!muteBtn) return;
+    const muted = isMuted();
+    muteBtn.textContent = muted ? '🔇' : '🔊';
+    muteBtn.title = muted ? 'Slå på ljud' : 'Slå av ljud';
+    muteBtn.setAttribute('aria-label', muted ? 'Slå på ljud' : 'Slå av ljud');
+  };
+  updateMuteUi();
+
+  if (muteBtn) {
+    muteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      initAudio();
+      toggleMute();
+      updateMuteUi();
+      if (!isMuted()) playSound('click');
+    });
+  }
 
   // Start flow: character select → game. All 8 parties presented identically
   // (same frame, same 48×72 pixel portrait, PARTIES order).
   const select = document.getElementById('select');
   if (select) {
     showCharacterSelect(select, parties, sprites.get('politicians'), (party: PartyCode) => {
+      initAudio();
+      playSound('click');
       select.textContent = '';
       start(party);
     });
@@ -42,6 +65,8 @@ async function main(): Promise<void> {
     let acc = 0;
     const STEP = 1000 / 60;
     let prevEvent: GameState['lastEvent'] = null;
+    let prevCatch: GameState['lastCatch'] = null;
+    let prevBitingId: number | null = null;
     // tackle-panel change detection: the engine treats tackle immutably, so
     // array identity only changes when a bait wears, is swapped to front, or
     // the active bait id changes (same trick as lastEvent above)
@@ -49,6 +74,9 @@ async function main(): Promise<void> {
     let prevActiveId: string | null | undefined;
 
     const setSpot = (id: SpotId): void => {
+      if (id !== g.spotId) {
+        playSound('click');
+      }
       const s = spotById(id);
       g = { ...g, spotId: id, spotX: s.x, spotY: s.y };
       if (badgesContainer) {
@@ -63,6 +91,7 @@ async function main(): Promise<void> {
     // shared bait selection: the 1–5 keys and the panel clicks use this
     const selectBait = (slot: number): void => {
       const b = g.tackle[slot]; if (!b) return;
+      playSound('click');
       g = {
         ...g,
         tackle: [b, ...g.tackle.filter((x) => x !== b)],
@@ -72,8 +101,18 @@ async function main(): Promise<void> {
 
     const unbind = bindInput(canvas, {
       onSpot: setSpot,
-      onHook: () => { g = onHookClick(g, ROUND_MS - g.timeLeftMs); },
-      onCast: (x, y) => { g = castLapp(g, x, y); },
+      onHook: () => {
+        initAudio();
+        g = onHookClick(g, ROUND_MS - g.timeLeftMs);
+      },
+      onCast: (x, y) => {
+        initAudio();
+        const prevLapp = g.lapp;
+        g = castLapp(g, x, y);
+        if (g.lapp && g.lapp !== prevLapp) {
+          playSound('cast');
+        }
+      },
       onSelectBait: selectBait,
       isBiting: () => g.bitingVoterId !== null,
     });
@@ -81,6 +120,23 @@ async function main(): Promise<void> {
     function frame(t: number): void {
       const dt = Math.min(250, t - now); now = t; acc += dt;
       while (acc >= STEP) { g = step(g, STEP); acc -= STEP; }
+
+      // Biting sfx: trigger when a voter begins biting
+      if (g.bitingVoterId !== null && prevBitingId === null) {
+        playSound('bite');
+      }
+      prevBitingId = g.bitingVoterId;
+
+      // Catch/release sfx: trigger on new catch/release resolution
+      if (g.lastCatch !== null && g.lastCatch !== prevCatch) {
+        prevCatch = g.lastCatch;
+        if (g.lastCatch.released) {
+          playSound('release');
+        } else {
+          playSound('catch');
+        }
+      }
+
       // event splash: surface each new event (catch/release keep their source line)
       if (g.lastEvent !== null && g.lastEvent !== prevEvent) {
         prevEvent = g.lastEvent;
@@ -95,6 +151,7 @@ async function main(): Promise<void> {
       }
       drawScene(ctx, g, sprites, parties, t);
       if (g.phase === 'game_over') {
+        playSound('game_over');
         unbind();
         const rows = addScore(store, { party: g.party, votes: g.votes, released: g.released, at: Date.now() });
         saveStore(rows);
