@@ -2,14 +2,17 @@ import { describe, it, expect } from 'vitest';
 import { drawScene } from '../src/render';
 import { createGame } from '../src/engine';
 import { ROUND_MS, HOOK_WINDOW_MS, type PartyCode } from '../src/constants';
+import { BUILDINGS, SPOTS } from '../src/world';
 import type { PartyData, Voter } from '../src/types';
 
 interface Rect { x: number; y: number; w: number; h: number; }
 interface DrawCall { sx: number; sy: number; dx: number; dy: number; dw: number; dh: number; }
 interface StrokeCall { lineDash: number[]; }
+interface TextCall { text: string; x: number; y: number; }
 
-function stubCtx(): { ctx: CanvasRenderingContext2D; texts: string[]; rects: Rect[]; draws: DrawCall[]; strokeCalls: StrokeCall[] } {
+function stubCtx(): { ctx: CanvasRenderingContext2D; texts: string[]; textCalls: TextCall[]; rects: Rect[]; draws: DrawCall[]; strokeCalls: StrokeCall[] } {
   const texts: string[] = [];
+  const textCalls: TextCall[] = [];
   const rects: Rect[] = [];
   const draws: DrawCall[] = [];
   const strokeCalls: StrokeCall[] = [];
@@ -24,7 +27,7 @@ function stubCtx(): { ctx: CanvasRenderingContext2D; texts: string[]; rects: Rec
     drawImage: (_img: unknown, sx: number, sy: number, _sw: number, _sh: number, dx: number, dy: number, dw: number, dh: number) => {
       draws.push({ sx, sy, dx, dy, dw, dh });
     },
-    fillText: (s: string) => { texts.push(s); },
+    fillText: (s: string, x: number, y: number) => { texts.push(s); textCalls.push({ text: s, x, y }); },
     beginPath: () => {}, moveTo: () => {}, lineTo: () => {}, arc: () => {}, fill: () => {},
     stroke: () => {},
     save: () => { stack.push({ strokeStyle, globalAlpha }); },
@@ -35,8 +38,9 @@ function stubCtx(): { ctx: CanvasRenderingContext2D; texts: string[]; rects: Rec
     get globalAlpha() { return globalAlpha; },
     set globalAlpha(value: number) { globalAlpha = value; },
     fillStyle: '', font: '', textAlign: '', lineWidth: 0,
+    measureText: (text: string) => ({ width: text.length * 3 }), // Approximate 6px monospace width
   } as unknown as CanvasRenderingContext2D;
-  return { ctx, texts, rects, draws, strokeCalls };
+  return { ctx, texts, textCalls, rects, draws, strokeCalls };
 }
 
 const promises = Array.from({ length: 6 }, (_, i) => ({ id: 'p' + i, title: 't', quote: 'q', party: 's' as PartyCode, category: 'välfärd' as const, msekBase: 1, status: 'aktiv', source: { url: 'u', domain: 'd' } }));
@@ -141,5 +145,58 @@ describe('drawScene', () => {
     // Verify the ring uses the party color by checking strokeStyle was set at some point
     // (The exact value is restored to empty by ctx.restore(), but we can verify it was set)
     expect(strokeCalls.length).toBeGreaterThan(0);
+  });
+
+  it('draws building labels centered below each door (v1.2)', () => {
+    const g = createGame({ party: 's', promises });
+    const { ctx, textCalls } = stubCtx();
+    drawScene(ctx, g, new Map(), parties, 0);
+    // Check that Skolan label is near its door position (doorX=56, doorY=56, labelY≈doorY+8=64)
+    const skolan = BUILDINGS.find((b) => b.id === 'skolan')!;
+    const skolanLabel = textCalls.find((t) => t.text === 'Skolan');
+    expect(skolanLabel).toBeDefined();
+    // x should be near doorX (centered), y should be doorY+8
+    expect(Math.abs(skolanLabel!.x - skolan.doorX)).toBeLessThanOrEqual(12);
+    expect(Math.abs(skolanLabel!.y - (skolan.doorY + 8))).toBeLessThanOrEqual(1);
+    // Also check that all buildings are represented
+    const labels = textCalls.map((t) => t.text);
+    expect(labels).toContain('Äldreboendet');
+    expect(labels).toContain('Stationen');
+    expect(labels).toContain('Hus 1');
+    expect(labels).toContain('Hus 2');
+    expect(labels).toContain('Hus 3');
+  });
+
+  it('draws Torget label at the plaza (v1.2)', () => {
+    const g = createGame({ party: 's', promises });
+    const { ctx, textCalls } = stubCtx();
+    drawScene(ctx, g, new Map(), parties, 0);
+    const torget = SPOTS.find((s) => s.id === 'torget')!;
+    // Torget label should be present near the plaza (x-14, y-14)
+    const torsetLabel = textCalls.find((t) => t.text === 'Torget');
+    expect(torsetLabel).toBeDefined();
+    expect(Math.abs(torsetLabel!.x - (torget.x - 14))).toBeLessThanOrEqual(1);
+    expect(Math.abs(torsetLabel!.y - (torget.y - 14))).toBeLessThanOrEqual(1);
+  });
+
+  it('removes old floating spot labels (v1.2)', () => {
+    const g = createGame({ party: 's', promises });
+    const { ctx, textCalls } = stubCtx();
+    drawScene(ctx, g, new Map(), parties, 0);
+    // Old floating labels were at y = spot.y - 8 for all spots
+    // New labels are at doorY + 8 for buildings, and torget.y - 14 for torget
+    // Check that no building label is at the old floating position (spot.y - 8)
+    for (const spot of SPOTS) {
+      if (spot.id === 'torget') continue; // Torget is different
+      const buildingLabel = textCalls.find((t) => t.text === spot.name);
+      expect(buildingLabel).toBeDefined();
+      // Old position would have been y ≈ spot.y - 8
+      // New position should be doorY + 8, which is different
+      const building = BUILDINGS.find((b) => b.id === spot.id);
+      if (building) {
+        expect(buildingLabel!.y).not.toBeCloseTo(spot.y - 8, 0);
+        expect(Math.abs(buildingLabel!.y - (building.doorY + 8))).toBeLessThanOrEqual(1);
+      }
+    }
   });
 });

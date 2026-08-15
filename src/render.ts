@@ -1,5 +1,5 @@
 import { LOGICAL_W, LOGICAL_H, TOWN_COLS, TOWN_ROWS, ROUND_MS, HOOK_WINDOW_MS, PARTIES, CAST_RADIUS, LEADER_W, LEADER_H } from './constants';
-import { SPOTS } from './world';
+import { SPOTS, BUILDINGS } from './world';
 import { activeBait } from './bait';
 import type { GameState } from './engine';
 import type { SheetMap } from './sprites';
@@ -117,14 +117,24 @@ export function drawScene(ctx: CanvasRenderingContext2D, state: GameState, sprit
     ctx.fillRect(0, 0, LOGICAL_W, LOGICAL_H);
   }
 
-  // --- spot markers ---
-  for (const s of SPOTS) {
-    ctx.fillStyle = 'rgba(255,255,255,0.15)';
-    ctx.fillRect(s.x - 10, s.y - 4, 20, 8);
-    ctx.fillStyle = state.spotId === s.id ? '#fff' : '#888';
-    ctx.font = '6px monospace';
-    ctx.fillText(s.name, s.x - 12, s.y - 8);
+  // --- building labels (centered below each door) ---
+  ctx.font = '6px monospace';
+  ctx.textAlign = 'left';
+  for (const b of BUILDINGS) {
+    const metrics = ctx.measureText(b.name);
+    const labelX = b.doorX - metrics.width / 2;
+    const labelY = b.doorY + 8;
+    // subtle dark backing for legibility
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(labelX - 1, labelY - 6, metrics.width + 2, 8);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(b.name, labelX, labelY);
   }
+
+  // --- torget label (at the plaza) ---
+  const torget = SPOTS.find((s) => s.id === 'torget')!;
+  ctx.fillStyle = '#fff';
+  ctx.fillText('Torget', torget.x - 14, torget.y - 14);
 
   // --- v1.2 cast radius ring (dashed, party color at 25% alpha) ---
   const pcol = partyColor(parties, state.party);
