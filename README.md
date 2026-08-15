@@ -12,7 +12,8 @@ pnpm dev
 
 ### Kontroller
 
-- **Klicka** — kasta lapp (mete) eller mothugg vid napp
+- **Klicka på en byggnad** — gå dit (byt plats: skolan, äldreboendet, stationen; klicka på torget för torget)
+- **Klicka på marken** — kasta lapp (mete), eller mothugg vid napp
 - **Mellanslag** — mothugg vid napp
 - **Q/W/E/R** — byt plats (torget, skolan, äldreboendet, stationen)
 - **1–5** — välj bete (väljarkategori), eller klicka i betespanelen

@@ -14,6 +14,26 @@ export function spotById(id: SpotId): FishingSpot {
   return s;
 }
 
+/** Click-to-move radius (px) around a spot's anchor point (v1.2.2). */
+export const SPOT_CLICK_R = 24;
+
+/** Anchor point of a spot: the linked building's door, or the spot's own
+ *  center for spots without a building (torget). Pure. */
+export function spotAnchor(s: FishingSpot): { x: number; y: number } {
+  const b = BUILDINGS.find((x) => x.id === s.id);
+  return b ? { x: b.doorX, y: b.doorY } : { x: s.x, y: s.y };
+}
+
+/** Which fishing spot a click on (x, y) selects, or null when the click is
+ *  not within SPOT_CLICK_R of any spot's anchor. Pure. */
+export function spotAt(x: number, y: number, r: number = SPOT_CLICK_R): SpotId | null {
+  for (const s of SPOTS) {
+    const a = spotAnchor(s);
+    if (Math.hypot(x - a.x, y - a.y) <= r) return s.id;
+  }
+  return null;
+}
+
 export const BUILDINGS: Building[] = [
   { id: 'skolan',       name: 'Skolan',       x: 56,  y: 40,  doorX: 56,  doorY: 56,  bias: { utbildning: 6 } },
   { id: 'aldreboendet', name: 'Äldreboendet', x: 320, y: 40,  doorX: 320, doorY: 56,  bias: { välfärd: 6 } },

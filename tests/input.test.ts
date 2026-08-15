@@ -79,6 +79,35 @@ describe('bindInput', () => {
     expect(calls.cast).toEqual([{ x: 100, y: 50 }]);
   });
 
+  it('routes a click within 24 px of a building door to onSpot (walk there)', () => {
+    const canvas = new FakeCanvas();
+    const { h, calls } = handlers();
+    bindInput(canvas as unknown as HTMLCanvasElement, h);
+    click(canvas, 56, 56);    // skolan door
+    click(canvas, 320, 56);   // aldreboendet door
+    click(canvas, 192, 40);   // stationen door
+    expect(calls.spot).toEqual(['skolan', 'aldreboendet', 'stationen']);
+    expect(calls.cast).toHaveLength(0);
+  });
+
+  it('routes a click on torget center to onSpot("torget")', () => {
+    const canvas = new FakeCanvas();
+    const { h, calls } = handlers();
+    bindInput(canvas as unknown as HTMLCanvasElement, h);
+    click(canvas, LOGICAL_W * 0.5, LOGICAL_H * 0.62); // torget anchor
+    expect(calls.spot).toEqual(['torget']);
+    expect(calls.cast).toHaveLength(0);
+  });
+
+  it('routes a click on open ground (> 24 px from every anchor) to onCast', () => {
+    const canvas = new FakeCanvas();
+    const { h, calls } = handlers();
+    bindInput(canvas as unknown as HTMLCanvasElement, h);
+    click(canvas, 340, 180);  // bottom-right corner, far from all anchors
+    expect(calls.cast).toEqual([{ x: 340, y: 180 }]);
+    expect(calls.spot).toHaveLength(0);
+  });
+
   describe('keys', () => {
     interface WinStub {
       addEventListener: (t: string, f: Listener) => void;
@@ -96,6 +125,15 @@ describe('bindInput', () => {
         key, code, metaKey: false, ctrlKey: false, altKey: false, repeat: false, ...mods,
       });
     };
+
+    it('DIAGNOSIS v1.2.2: q and Q (caps) both select torget — no key bug', () => {
+      const canvas = new FakeCanvas();
+      const { h, calls } = handlers();
+      bindInput(canvas as unknown as HTMLCanvasElement, h);
+      press(canvas, 'q', 'KeyQ');
+      press(canvas, 'Q', 'KeyQ');
+      expect(calls.spot).toEqual(['torget', 'torget']);
+    });
 
     it('q/w/e/r select the four spots', () => {
       const canvas = new FakeCanvas();

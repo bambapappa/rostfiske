@@ -1,4 +1,5 @@
 import { LOGICAL_W, LOGICAL_H } from './constants';
+import { spotAt } from './world';
 import type { SpotId } from './types';
 
 export interface InputHandlers {
@@ -28,6 +29,10 @@ export function bindInput(canvas: HTMLCanvasElement, h: InputHandlers): () => vo
     // Hook primacy: while a voter holds the lapp, ANY click is a hook attempt.
     if (h.isBiting()) { h.onHook(); return; }
     const { x, y } = toLogical(e);
+    // Click on a spot anchor (building door / torget) = walk there (v1.2.2);
+    // anything else on the ground = cast the lapp.
+    const spot = spotAt(x, y);
+    if (spot) { h.onSpot(spot); return; }
     h.onCast(x, y);
   };
   const onKey = (e: KeyboardEvent) => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SPOTS, spotById, BUILDINGS, buildingById, buildingRects, buildingRect, isDoorZone, pushOut, BUILDING_W, BUILDING_H } from '../src/world';
+import { SPOTS, spotById, BUILDINGS, buildingById, buildingRects, buildingRect, isDoorZone, pushOut, BUILDING_W, BUILDING_H, spotAt } from '../src/world';
 import { LOGICAL_W, LOGICAL_H } from '../src/constants';
 
 describe('city spots', () => {
@@ -126,5 +126,24 @@ describe('building footprints (v1.2)', () => {
     const inHus2 = (x: number, y: number): boolean =>
       x > hus2.x && x < hus2.x + hus2.w && y > hus2.y && y < hus2.y + hus2.h;
     expect(inHus2(out.x, out.y)).toBe(false);
+  });
+});
+
+describe('spotAt (v1.2.2 click-to-move)', () => {
+  it('returns the spot whose anchor (building door) is within 24 px', () => {
+    expect(spotAt(56, 56)).toBe('skolan');        // skolan door
+    expect(spotAt(320, 56)).toBe('aldreboendet'); // aldreboendet door
+    expect(spotAt(192, 40)).toBe('stationen');    // stationen door
+    expect(spotAt(56 + 24, 56)).toBe('skolan');   // exactly at radius = hit
+    expect(spotAt(56 + 25, 56)).toBeNull();       // just outside = miss
+  });
+  it('torget anchors on its own center (no linked building)', () => {
+    const t = spotById('torget');
+    expect(spotAt(t.x, t.y)).toBe('torget');
+    expect(spotAt(t.x + 10, t.y - 10)).toBe('torget');
+  });
+  it('returns null on open ground', () => {
+    expect(spotAt(10, 190)).toBeNull();
+    expect(spotAt(340, 180)).toBeNull();
   });
 });
