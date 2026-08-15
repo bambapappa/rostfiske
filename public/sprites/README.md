@@ -12,19 +12,22 @@ All art is CC0 (public domain). Sources and licenses:
 - `politicians.png` — custom-generated caricatures of the 2026 party
   leaders (CC0). 64x48 px, 8 sprites of 16x24 in a 4x2 grid, one per party
   in `PARTIES` order: row 0: s, m, sd, c; row 1: v, kd, l, mp.
-  Leaders (search-verified 2026-08-15):
+  Leaders (v1.2.1 corrections per the user's party-source links,
+  search-verified 2026-08-15):
   | Cell | Parti | Ledare | Kännetecken i spriten |
   |---|---|---|---|
   | 0 | s | Magdalena Andersson | kvinna, mörkbrunt hår i knut |
   | 1 | m | Ulf Kristersson | man, glasögon, grånat hår, sidbena |
-  | 2 | sd | Jimmie Åkesson | man, blont välkammat, kostym |
+  | 2 | sd | Jimmie Åkesson | man, mörkhårigt välkammat, kostym |
   | 3 | c | Elisabeth Thand Ringqvist | kvinna, ljust/blondt axellångt hår |
-  | 4 | v | Nooshi Dadgostar | kvinna, mörkt långt hår, brun hy |
+  | 4 | v | Nooshi Dadgostar | kvinna, mörkt långt hår, ljusbrun hy |
   | 5 | kd | Ebba Busch | kvinna, blont page |
-  | 6 | l | Johan Pehrson | man, glasögon, hög hårfäste, skäggstubb |
-  | 7 | mp | Amanda Lind | kvinna, rödbrunt vågigt hår |
-  Note: MP has two språkrör (Amanda Lind and Janine Alm Ericson) — the game
-  uses one avatar per party and picked Amanda Lind.
+  | 6 | l | Simona Mohamsson | kvinna, ljusbrun hy, mörkt axellångt hår |
+  | 7 | mp | Amanda Lind + Daniel Helldén | partiets två språkrör, båda ritade: hon med rödbrunt hår, han med grått hår och skäggstubb |
+  Note: MP has two språkrör (Amanda Lind and Daniel Helldén, mp.se/om/sprakror)
+  — the MP cell shows BOTH as two smaller figures side by side. That is a
+  factual representation of the party's leadership, not an advantage: same
+  dignified style and level of detail as every other cell.
   The caricatures are **paraphrases**, not exact portraits: simplified,
   neutral pixel art where glasses/hair/stubble are recognition descriptors,
   never mockery. Every leader gets the same dignified base body (suit in

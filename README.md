@@ -24,7 +24,7 @@ pnpm dev
 - **Naturligt vandrande:** varje väljare har egen fart, svänger mjukt och stannar ibland ("tittar i skyltfönster")
 - **Betespanel:** de fem betena syns med hållbarhets-pips; pips är medvetet partineutralt vita; byt med 1–5 eller klick
 - **Porträtt i karaktärsvälet:** varje valknapp visar partiledarens pixelporträtt (16×24, uppskalat ×3) ovanför partinamnet
-- **Ledare 2026:** karikatyrerna föreställer de aktuella partiledarna — hela listan med källor finns i `public/sprites/README.md`. (MP har två språkrör; spelet använder en avatar per parti och valde Amanda Lind.)
+- **Ledare 2026:** karikatyrerna föreställer de aktuella partiledarna — hela listan med källor finns i `public/sprites/README.md`. (MP har två språkrör — Amanda Lind och Daniel Helldén — och MP-cellen visar båda.)
 
 ### Mekanik (v1.1)
 

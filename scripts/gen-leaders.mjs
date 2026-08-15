@@ -11,15 +11,18 @@
 // or plain collar) and the same level of detail. Gender and skin tone are
 // factual representation, not exaggeration.
 //
-// Leaders (search-verified 2026-08-15, see spec):
+// Leaders (v1.2.1 corrections per the user's party-source links):
 //   s  Magdalena Andersson   kvinna, mörkbrunt hår i knut
 //   m  Ulf Kristersson       man, glasögon, grånat hår, sidbena
-//   sd Jimmie Åkesson        man, blont välkammat, kostym
+//   sd Jimmie Åkesson        man, mörkhårigt välkammat, kostym
 //   c  Elisabeth Thand Ringqvist kvinna, ljust/blond hår
-//   v  Nooshi Dadgostar      kvinna, mörkt hår, brun hy
+//   v  Nooshi Dadgostar      kvinna, mörkt hår, ljusbrun hy
 //   kd Ebba Busch            kvinna, blont page
-//   l  Johan Pehrson         man, glasögon, grånat/hårbotten, skäggstubb
-//   mp Amanda Lind           kvinna, rödbrunt hår (MP har två språkrör)
+//   l  Simona Mohamsson      kvinna, ljusbrun hy, mörkt hår
+//   mp Amanda Lind + Daniel Helldén — MP:s två språkrör, båda ritade som
+//      två mindre figurer (~7 px breda) sida vid sida i MP-cellen.
+//      Faktisk representation av partiledningen, inte en fördel: samma
+//      världiga grundkropp och detaljnivå som alla andra celler.
 //
 // Suit colors mirror FALLBACK_PARTIES in src/fallback.ts (display-only).
 //
@@ -57,7 +60,7 @@ const LEADERS = [
   },
   {
     code: 'sd', name: 'Jimmie Åkesson', gender: 'man',
-    suit: '#4E9E2C', skin: '#e8b08a', hair: '#e8cf7a',
+    suit: '#4E9E2C', skin: '#e8b08a', hair: '#2b1c10',
     hairStyle: 'neat-combed',
   },
   {
@@ -67,7 +70,7 @@ const LEADERS = [
   },
   {
     code: 'v', name: 'Nooshi Dadgostar', gender: 'kvinna',
-    suit: '#DA291C', skin: '#b07a52', hair: '#1f1410',
+    suit: '#DA291C', skin: '#c68e63', hair: '#1f1410',
     hairStyle: 'long',
   },
   {
@@ -76,14 +79,26 @@ const LEADERS = [
     hairStyle: 'page',
   },
   {
-    code: 'l', name: 'Johan Pehrson', gender: 'man',
-    suit: '#006AB3', skin: '#e8b08a', hair: '#9a8f82',
-    hairStyle: 'receding', glasses: true, stubble: true,
+    code: 'l', name: 'Simona Mohamsson', gender: 'kvinna',
+    suit: '#006AB3', skin: '#c68e63', hair: '#241811',
+    hairStyle: 'wavy-long',
   },
   {
-    code: 'mp', name: 'Amanda Lind', gender: 'kvinna',
-    suit: '#83CF39', skin: '#ecc19c', hair: '#a14e26',
-    hairStyle: 'wavy-long',
+    // MP has two språkrör — the cell shows BOTH as two smaller figures side
+    // by side (~7 px wide each). Factual representation of the party's
+    // leadership, same dignified style as every other cell.
+    code: 'mp', name: 'Amanda Lind + Daniel Helldén', duo: true,
+    suit: '#83CF39',
+    figures: [
+      {
+        name: 'Amanda Lind', gender: 'kvinna',
+        skin: '#ecc19c', hair: '#a14e26', hairStyle: 'mini-long',
+      },
+      {
+        name: 'Daniel Helldén', gender: 'man',
+        skin: '#ecc19c', hair: '#9a938c', hairStyle: 'mini-short', stubble: true,
+      },
+    ],
   },
 ];
 
@@ -139,7 +154,7 @@ const HAIR = {
     g.px(11, 4, hair);
     g.px(4, 5, hair);
   },
-  // blont välkammat: rak hårlinje + prydliga sideburns
+  // välkammat (mörkt för Åkesson): rak hårlinje + prydliga sideburns
   neatCombed(g, { hair }) {
     g.rect(5, 2, 6, 2, hair);
     g.rect(4, 3, 2, 1, hair);
@@ -172,7 +187,7 @@ const HAIR = {
     g.px(4, 3, hair);         // tinningar
     g.px(11, 3, hair);
   },
-  // rödbrunt, axellångt med utåtgående våg
+  // axellångt med utåtgående våg (mörkt för Mohamsson)
   wavyLong(g, { hair }) {
     g.rect(5, 2, 6, 2, hair);
     g.rect(4, 3, 1, 11, hair); // ner till y13
@@ -211,6 +226,58 @@ function stubble(g) {
   g.px(11, 9, STUBBLE);
 }
 
+// --- Mini figures (MP: both språkrör in one cell) ---
+// Two ~7 px wide figures side by side at ox=0 and ox=9, same dignified
+// construction as the base body, scaled down: head x ox+1..ox+5 y7..11,
+// neck y12, suit torso y13..17, shirt/tie, legs y18..21, shoes y22..23
+// (feet on the bottom row, like the full-size figures).
+function drawMiniBody(g, ox, { suit, skin, gender }) {
+  // head + neck
+  g.rect(ox + 1, 7, 5, 5, skin);
+  g.px(ox + 3, 12, skin);
+  // eyes
+  g.px(ox + 2, 9, DARK);
+  g.px(ox + 4, 9, DARK);
+  // suit: shoulders, torso, arms
+  g.rect(ox, 13, 7, 1, suit);
+  g.rect(ox + 1, 14, 5, 4, suit);
+  g.rect(ox, 14, 1, 4, suit);
+  g.rect(ox + 6, 14, 1, 4, suit);
+  // shirt collar / tie
+  g.px(ox + 3, 13, WHITE);
+  if (gender === 'man') {
+    g.px(ox + 3, 14, DARK);
+    g.px(ox + 3, 15, DARK);
+  }
+  // hands, legs, shoes
+  g.px(ox, 17, skin);
+  g.px(ox + 6, 17, skin);
+  g.rect(ox + 1, 18, 2, 4, DARK);
+  g.rect(ox + 4, 18, 2, 4, DARK);
+  g.rect(ox + 1, 22, 2, 2, SHOE);
+  g.rect(ox + 4, 22, 2, 2, SHOE);
+}
+
+const MINI_HAIR = {
+  // rödbrunt, axellångt: kalott + sidor ner mot axlarna
+  'mini-long'(g, ox, { hair }) {
+    g.rect(ox + 1, 5, 5, 2, hair);
+    g.rect(ox, 7, 1, 4, hair);
+    g.rect(ox + 6, 7, 1, 4, hair);
+  },
+  // grått, kort kammat: kalott ovan pannan
+  'mini-short'(g, ox, { hair }) {
+    g.rect(ox + 1, 5, 5, 2, hair);
+    g.px(ox, 7, hair);
+    g.px(ox + 6, 7, hair);
+  },
+};
+
+// Skäggstubb (mini): subdued band along the mini figure's jaw.
+function miniStubble(g, ox) {
+  g.rect(ox + 1, 11, 5, 1, STUBBLE);
+}
+
 const sheet = new Grid(CELL_W * COLS, CELL_H * 2);
 
 LEADERS.forEach((leader, i) => {
@@ -219,10 +286,19 @@ LEADERS.forEach((leader, i) => {
   // Draw into a cell-local grid, then blit it onto the sheet so the
   // feature functions can use cell coordinates.
   const cell = new Grid(CELL_W, CELL_H);
-  drawBaseBody(cell, leader);
-  HAIR_FN[leader.hairStyle](cell, leader);
-  if (leader.glasses) glasses(cell);
-  if (leader.stubble) stubble(cell);
+  if (leader.duo) {
+    leader.figures.forEach((fig, fi) => {
+      const ox = fi * 9; // figures at x0..6 and x9..15
+      drawMiniBody(cell, ox, { suit: leader.suit, ...fig });
+      MINI_HAIR[fig.hairStyle](cell, ox, fig);
+      if (fig.stubble) miniStubble(cell, ox);
+    });
+  } else {
+    drawBaseBody(cell, leader);
+    HAIR_FN[leader.hairStyle](cell, leader);
+    if (leader.glasses) glasses(cell);
+    if (leader.stubble) stubble(cell);
+  }
   for (let y = 0; y < CELL_H; y++) {
     for (let x = 0; x < CELL_W; x++) {
       const idx = (y * CELL_W + x) * 4;
