@@ -62,6 +62,7 @@ interface FakeEl {
   type: string;
   className: string;
   style: Record<string, string>;
+  attributes: Record<string, string>;
   width: number;
   height: number;
   children: FakeEl[];
@@ -73,12 +74,14 @@ interface FakeEl {
   appendChild(c: FakeEl): FakeEl;
   replaceChildren(): void;
   addEventListener(t: string, fn: (e: unknown) => void): void;
+  setAttribute(name: string, val: string): void;
+  getAttribute(name: string): string | undefined;
 }
 
-function fakeEl(tag: string): FakeEl {
+function fakeEl(tag: string, textContent = ''): FakeEl {
   const el: FakeEl = {
-    tag, textContent: '', title: '', type: '', className: '',
-    style: {}, width: 0, height: 0, children: [], listeners: {},
+    tag, textContent, title: '', type: '', className: '',
+    style: {}, attributes: {}, width: 0, height: 0, children: [], listeners: {},
     draws: [], imageSmoothingEnabled: true,
     getContext() {
       return {
@@ -91,6 +94,8 @@ function fakeEl(tag: string): FakeEl {
     appendChild(c) { el.children.push(c); return el; },
     replaceChildren() { el.children.length = 0; },
     addEventListener(t, fn) { (el.listeners[t] ??= []).push(fn); },
+    setAttribute(name, val) { el.attributes[name] = val; },
+    getAttribute(name) { return el.attributes[name]; },
   };
   return el;
 }
@@ -388,9 +393,17 @@ describe('renderBuildingBadges', () => {
 });
 
 describe('showGameOverModal', () => {
-  const g = globalThis as unknown as { document?: { createElement: (t: string) => FakeEl } };
+  const g = globalThis as unknown as {
+    document?: {
+      createElement: (t: string) => FakeEl;
+      createTextNode: (t: string) => FakeEl;
+    };
+  };
   beforeEach(() => {
-    g.document = { createElement: (tag: string) => fakeEl(tag) };
+    g.document = {
+      createElement: (tag: string) => fakeEl(tag),
+      createTextNode: (text: string) => fakeEl('#text', text),
+    };
   });
   afterEach(() => {
     delete g.document;
@@ -400,17 +413,146 @@ describe('showGameOverModal', () => {
     const { showGameOverModal } = await import('../src/ui');
     const container = fakeEl('div');
     let restarted = false;
-    const gameState = { votes: 8, released: 2 } as import('../src/engine').GameState;
+    const gameState = { party: 's', votes: 8, released: 2, caughtVotesHistory: [] } as unknown as import('../src/engine').GameState;
     showGameOverModal(container as unknown as HTMLElement, gameState, 10, () => { restarted = true; });
     expect(container.children).toHaveLength(1);
     const modal = container.children[0]!;
     expect(modal.className).toBe('game-over-modal');
     const title = modal.children.find((c) => c.tag === 'h2')!;
     expect(title.textContent).toBe('Valdagen är över');
-    const btn = modal.children.find((c) => c.tag === 'button')!;
+    const btn = modal.children.find((c) => c.tag === 'button' && c.className === 'restart-btn')!;
     expect(btn.textContent).toBe('Spela igen');
     btn.listeners['click']![0]!({});
     expect(restarted).toBe(true);
+  });
+
+  it('renders mandate calculation and threshold badge for passing score (>= 4 votes)', async () => {
+    const { showGameOverModal } = await import('../src/ui');
+    const container = fakeEl('div');
+    const gameState = { party: 'm', votes: 8, released: 1, caughtVotesHistory: [] } as unknown as import('../src/engine').GameState;
+    showGameOverModal(container as unknown as HTMLElement, gameState, { s: 0, m: 8, sd: 0, c: 0, v: 0, kd: 0, l: 0, mp: 0 }, () => {});
+    const modal = container.children[0]!;
+    const badge = byClass(modal, 'threshold-badge');
+    expect(badge).toBeDefined();
+    expect(badge!.textContent).toBe('Över 4%-spärren');
+    expect(badge!.className).toContain('over-sparr');
+
+    const status = byClass(modal, 'mandate-status');
+    expect(status).toBeDefined();
+    expect(status!.textContent).toBe('Starkt valresultat');
+
+    const mandateNum = byClass(modal, 'mandate-num');
+    expect(mandateNum).toBeDefined();
+    expect(mandateNum!.children.find((c) => c.tag === 'strong')!.textContent).toBe('35');
+  });
+
+  it('renders threshold badge for under 4%-spärren (< 4 votes)', async () => {
+    const { showGameOverModal } = await import('../src/ui');
+    const container = fakeEl('div');
+    const gameState = { party: 'c', votes: 2, released: 0, caughtVotesHistory: [] } as unknown as import('../src/engine').GameState;
+    showGameOverModal(container as unknown as HTMLElement, gameState, 2, () => {});
+    const modal = container.children[0]!;
+    const badge = byClass(modal, 'threshold-badge');
+    expect(badge).toBeDefined();
+    expect(badge!.textContent).toBe('Under 4%-spärren');
+    expect(badge!.className).toContain('under-sparr');
+
+    const status = byClass(modal, 'mandate-status');
+    expect(status!.textContent).toBe('Under 4%-spärren');
+
+    const mandateNum = byClass(modal, 'mandate-num');
+    expect(mandateNum!.children.find((c) => c.tag === 'strong')!.textContent).toBe('0');
+  });
+
+  it('renders issue breakdown horizontal bar and legend when votes exist', async () => {
+    const { showGameOverModal } = await import('../src/ui');
+    const container = fakeEl('div');
+    const gameState = {
+      party: 's',
+      votes: 4,
+      released: 0,
+      caughtVotesHistory: [
+        { category: 'välfärd', title: 'Vårdlyft', party: 's' },
+        { category: 'välfärd', title: 'Äldreomsorg', party: 's' },
+        { category: 'utbildning', title: 'Fler lärare', party: 's' },
+        { category: 'skatter', title: 'Sänkt skatt', party: 's' },
+      ],
+    } as unknown as import('../src/engine').GameState;
+
+    showGameOverModal(container as unknown as HTMLElement, gameState, 4, () => {});
+    const modal = container.children[0]!;
+    const bar = byClass(modal, 'issue-bar');
+    expect(bar).toBeDefined();
+    expect(bar!.children).toHaveLength(3); // välfärd, utbildning, skatter
+
+    // First segment (välfärd = 50%)
+    const seg1 = bar!.children[0]!;
+    expect(seg1.style.width).toBe('50%');
+    expect(seg1.style.backgroundColor).toBe(CATEGORY_COLORS['välfärd']);
+
+    const legend = byClass(modal, 'issue-legend');
+    expect(legend).toBeDefined();
+    expect(legend!.children).toHaveLength(3);
+  });
+
+  it('renders 8-leader arcade highscore grid strictly in PARTIES order with portraits and records', async () => {
+    const { showGameOverModal } = await import('../src/ui');
+    const container = fakeEl('div');
+    const scores = { s: 10, m: 14, sd: 8, c: 4, v: 7, kd: 5, l: 3, mp: 6 };
+    const gameState = { party: 'v', votes: 7, released: 1, caughtVotesHistory: [] } as unknown as import('../src/engine').GameState;
+
+    showGameOverModal(container as unknown as HTMLElement, gameState, scores, () => {}, PARTIES_TEST, SHEET_STUB);
+    const modal = container.children[0]!;
+    const grid = byClass(modal, 'leader-highscore-grid');
+    expect(grid).toBeDefined();
+    expect(grid!.children).toHaveLength(8);
+
+    // Verify all 8 parties are rendered in standard PARTIES order
+    PARTIES.forEach((code, idx) => {
+      const card = grid!.children[idx]!;
+      expect(card.className).toContain('party-score-card');
+      const partyData = PARTIES_TEST.find((p) => p.code === code)!;
+      expect(card.style.borderColor).toBe(partyData.color);
+
+      // Canvas portrait with drawImage called
+      const canvas = card.children.find((c) => c.tag === 'canvas')!;
+      expect(canvas).toBeDefined();
+      expect(canvas.width).toBe(48);
+      expect(canvas.height).toBe(72);
+      expect(canvas.draws).toEqual([[(idx % 4) * 16, Math.floor(idx / 4) * 24, 16, 24, 0, 0, 48, 72]]);
+
+      // Party name & score
+      const name = byClass(card, 'party-card-name');
+      expect(name!.textContent).toBe(partyData.name);
+
+      const scoreEl = byClass(card, 'party-card-score');
+      expect(scoreEl!.children.find((c) => c.tag === 'strong')!.textContent).toBe(String(scores[code]));
+
+      // Active party highlight
+      if (code === 'v') {
+        expect(card.className).toContain('active-party');
+      } else {
+        expect(card.className).not.toContain('active-party');
+      }
+    });
+  });
+
+  it('guarantees neutrality: no winner/loser framing in markup across all parties', async () => {
+    const { showGameOverModal } = await import('../src/ui');
+    const container = fakeEl('div');
+    const scores = { s: 10, m: 14, sd: 8, c: 4, v: 7, kd: 5, l: 3, mp: 6 };
+    const gameState = { party: 'sd', votes: 8, released: 0, caughtVotesHistory: [] } as unknown as import('../src/engine').GameState;
+
+    showGameOverModal(container as unknown as HTMLElement, gameState, scores, () => {}, PARTIES_TEST, SHEET_STUB);
+    const modal = container.children[0]!;
+    const allText = modal.children
+      .flatMap((c) => [c.textContent, c.className, ...c.children.map((ch) => ch.textContent)])
+      .join(' ')
+      .toLowerCase();
+
+    expect(allText).not.toContain('vann');
+    expect(allText).not.toContain('förlorade');
+    expect(allText).not.toContain('sämst');
   });
 });
 

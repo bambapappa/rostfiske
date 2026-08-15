@@ -1,6 +1,7 @@
 import type { GameState } from './engine';
 import { PARTIES, LEADER_W, LEADER_H, LOGICAL_W, LOGICAL_H, type Category, type PartyCode } from './constants';
 import type { GameEvent, PartyData, Bait } from './types';
+import { calculateMandates, calculateIssueBreakdown } from './highscore';
 
 /** Category → chip color (pixel-palette hex). Single source of truth: the
  *  tackle-panel chips (ui.ts) and the canvas voter-fallback fill (render.ts)
@@ -189,26 +190,234 @@ export function renderBuildingBadges(
   }
 }
 
-/** Render a clean, crisp game over overlay modal over the game stage. */
+/** Render a rich, neutral Valvaka results overlay modal over the game stage. */
 export function showGameOverModal(
   container: HTMLElement,
   state: GameState,
-  bestScore: number,
+  partyScoresOrBest: number | Record<PartyCode, number>,
   onRestart: () => void,
+  parties?: PartyData[],
+  sheet?: HTMLImageElement,
 ): void {
   container.replaceChildren();
   const modal = document.createElement('div');
   modal.className = 'game-over-modal';
 
   const title = document.createElement('h2');
+  title.className = 'valvaka-title';
   title.textContent = 'Valdagen är över';
   modal.appendChild(title);
 
-  const stats = document.createElement('div');
-  stats.className = 'stats-row';
-  stats.innerHTML = `<span>Röster: <strong>${state.votes}</strong></span><span>Släppta: <strong>${state.released}</strong></span><span>Bäst: <strong>${bestScore}</strong></span>`;
-  modal.appendChild(stats);
+  const mandateRes = calculateMandates(state.votes);
+  const partyScores: Record<PartyCode, number> = typeof partyScoresOrBest === 'number'
+    ? { s: 0, m: 0, sd: 0, c: 0, v: 0, kd: 0, l: 0, mp: 0, [state.party]: partyScoresOrBest }
+    : partyScoresOrBest;
 
+  const defaultParties: PartyData[] = [
+    { code: 's', name: 'Socialdemokraterna', color: '#e8112d', colorText: '#fff', block: 'rödgrön' },
+    { code: 'm', name: 'Moderaterna', color: '#005ea1', colorText: '#fff', block: 'borgerlig' },
+    { code: 'sd', name: 'Sverigedemokraterna', color: '#ddab00', colorText: '#fff', block: 'sd' },
+    { code: 'c', name: 'Centerpartiet', color: '#009933', colorText: '#fff', block: 'borgerlig' },
+    { code: 'v', name: 'Vänsterpartiet', color: '#da291c', colorText: '#fff', block: 'rödgrön' },
+    { code: 'kd', name: 'Kristdemokraterna', color: '#005ea8', colorText: '#fff', block: 'borgerlig' },
+    { code: 'l', name: 'Liberalerna', color: '#006ab3', colorText: '#fff', block: 'borgerlig' },
+    { code: 'mp', name: 'Miljöpartiet', color: '#83cf39', colorText: '#fff', block: 'rödgrön' },
+  ];
+  const partyList = parties && parties.length > 0 ? parties : defaultParties;
+  const currentParty = partyList.find((p) => p.code === state.party) ?? {
+    code: state.party,
+    name: state.party.toUpperCase(),
+    color: '#888',
+    colorText: '#fff',
+    block: '',
+  };
+
+  // Section 1: Mandates & Status
+  const mandatesSec = document.createElement('div');
+  mandatesSec.className = 'valvaka-mandates';
+
+  const headline = document.createElement('div');
+  headline.className = 'mandate-headline';
+
+  const partyNameSpan = document.createElement('span');
+  partyNameSpan.className = 'mandate-party';
+  partyNameSpan.style.color = currentParty.color;
+  partyNameSpan.textContent = `${currentParty.name}: `;
+  headline.appendChild(partyNameSpan);
+
+  const mandateNumSpan = document.createElement('span');
+  mandateNumSpan.className = 'mandate-num';
+  const strongMandate = document.createElement('strong');
+  strongMandate.textContent = `${mandateRes.mandates}`;
+  mandateNumSpan.appendChild(strongMandate);
+  const mandateUnit = document.createElement('span');
+  mandateUnit.textContent = ' mandat';
+  mandateNumSpan.appendChild(mandateUnit);
+  headline.appendChild(mandateNumSpan);
+
+  const thresholdBadge = document.createElement('span');
+  thresholdBadge.className = `threshold-badge ${mandateRes.passedThreshold ? 'over-sparr' : 'under-sparr'}`;
+  thresholdBadge.textContent = mandateRes.passedThreshold ? 'Över 4%-spärren' : 'Under 4%-spärren';
+  headline.appendChild(thresholdBadge);
+
+  mandatesSec.appendChild(headline);
+
+  const statusDiv = document.createElement('div');
+  statusDiv.className = 'mandate-status';
+  statusDiv.textContent = mandateRes.statusText;
+  mandatesSec.appendChild(statusDiv);
+
+  const statsRow = document.createElement('div');
+  statsRow.className = 'stats-row';
+
+  const votesSpan = document.createElement('span');
+  const votesLabel = document.createElement('span');
+  votesLabel.textContent = 'Röster: ';
+  const votesStrong = document.createElement('strong');
+  votesStrong.textContent = `${state.votes}`;
+  votesSpan.appendChild(votesLabel);
+  votesSpan.appendChild(votesStrong);
+  statsRow.appendChild(votesSpan);
+
+  const releasedSpan = document.createElement('span');
+  const releasedLabel = document.createElement('span');
+  releasedLabel.textContent = 'Släppta: ';
+  const releasedStrong = document.createElement('strong');
+  releasedStrong.textContent = `${state.released}`;
+  releasedSpan.appendChild(releasedLabel);
+  releasedSpan.appendChild(releasedStrong);
+  statsRow.appendChild(releasedSpan);
+
+  const bestSpan = document.createElement('span');
+  const bestLabel = document.createElement('span');
+  bestLabel.textContent = 'Bäst: ';
+  const bestStrong = document.createElement('strong');
+  bestStrong.textContent = `${partyScores[state.party] ?? state.votes}`;
+  bestSpan.appendChild(bestLabel);
+  bestSpan.appendChild(bestStrong);
+  statsRow.appendChild(bestSpan);
+
+  mandatesSec.appendChild(statsRow);
+  modal.appendChild(mandatesSec);
+
+  // Section 2: Issue breakdown
+  const breakdown = calculateIssueBreakdown(state.caughtVotesHistory ?? []);
+  const breakdownSec = document.createElement('div');
+  breakdownSec.className = 'issue-breakdown-section';
+
+  const breakdownTitle = document.createElement('div');
+  breakdownTitle.className = 'section-title';
+  breakdownTitle.textContent = 'Sakfrågor i valrörelsen';
+  breakdownSec.appendChild(breakdownTitle);
+
+  if (breakdown.length === 0) {
+    const emptyDiv = document.createElement('div');
+    emptyDiv.className = 'empty-breakdown';
+    emptyDiv.textContent = 'Inga röster fångade';
+    breakdownSec.appendChild(emptyDiv);
+  } else {
+    const bar = document.createElement('div');
+    bar.className = 'issue-bar';
+
+    for (const item of breakdown) {
+      const seg = document.createElement('div');
+      seg.className = 'issue-segment';
+      seg.style.width = `${item.percentage}%`;
+      seg.style.backgroundColor = CATEGORY_COLORS[item.category] ?? FALLBACK_COLOR;
+      seg.title = `${item.category}: ${item.count} st (${item.percentage}%)`;
+      bar.appendChild(seg);
+    }
+    breakdownSec.appendChild(bar);
+
+    const legend = document.createElement('div');
+    legend.className = 'issue-legend';
+    for (const item of breakdown) {
+      const legItem = document.createElement('div');
+      legItem.className = 'issue-legend-item';
+
+      const chip = document.createElement('span');
+      chip.className = 'legend-chip';
+      chip.style.backgroundColor = CATEGORY_COLORS[item.category] ?? FALLBACK_COLOR;
+      legItem.appendChild(chip);
+
+      const lbl = document.createElement('span');
+      lbl.className = 'legend-label';
+      lbl.textContent = `${item.category}:`;
+      legItem.appendChild(lbl);
+
+      const val = document.createElement('span');
+      val.className = 'legend-val';
+      val.textContent = `${item.count} (${item.percentage}%)`;
+      legItem.appendChild(val);
+
+      legend.appendChild(legItem);
+    }
+    breakdownSec.appendChild(legend);
+  }
+  modal.appendChild(breakdownSec);
+
+  // Section 3: 8-Leader Arcade Highscore Grid
+  const highscoreSec = document.createElement('div');
+  highscoreSec.className = 'leader-grid-section';
+
+  const highscoreTitle = document.createElement('div');
+  highscoreTitle.className = 'section-title';
+  highscoreTitle.textContent = 'Resultat per parti';
+  highscoreSec.appendChild(highscoreTitle);
+
+  const grid = document.createElement('div');
+  grid.className = 'leader-highscore-grid';
+
+  const orderedParties = PARTIES.map((code) => partyList.find((p) => p.code === code) ?? {
+    code,
+    name: code.toUpperCase(),
+    color: '#888',
+    colorText: '#fff',
+    block: '',
+  });
+
+  for (const p of orderedParties) {
+    const isCurrent = p.code === state.party;
+    const score = partyScores[p.code] ?? 0;
+
+    const card = document.createElement('div');
+    card.className = 'party-score-card' + (isCurrent ? ' active-party' : '');
+    card.style.borderColor = p.color;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = LEADER_W * 3;
+    canvas.height = LEADER_H * 3;
+    canvas.className = 'leader-portrait';
+    if (sheet) {
+      drawLeaderPortrait(canvas, sheet, p.code);
+    }
+    card.appendChild(canvas);
+
+    const info = document.createElement('div');
+    info.className = 'card-info';
+
+    const name = document.createElement('span');
+    name.className = 'party-card-name';
+    name.textContent = p.name;
+    info.appendChild(name);
+
+    const scoreSpan = document.createElement('span');
+    scoreSpan.className = 'party-card-score';
+    const scoreLabel = document.createElement('span');
+    scoreLabel.textContent = 'Rekord: ';
+    const scoreStrong = document.createElement('strong');
+    scoreStrong.textContent = `${score}`;
+    scoreSpan.appendChild(scoreLabel);
+    scoreSpan.appendChild(scoreStrong);
+    info.appendChild(scoreSpan);
+
+    card.appendChild(info);
+    grid.appendChild(card);
+  }
+  highscoreSec.appendChild(grid);
+  modal.appendChild(highscoreSec);
+
+  // Section 4: Restart button
   const restartBtn = document.createElement('button');
   restartBtn.type = 'button';
   restartBtn.className = 'restart-btn';

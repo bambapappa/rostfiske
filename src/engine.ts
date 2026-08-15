@@ -8,7 +8,7 @@ import { buildTackle, activeBait, baitById, wearBait } from './bait';
 import { tryEnter, tryExit, spawnAtBuilding, wanderStep } from './voter';
 import { beginBite, hookSucceeds, bittenVoterEscapes, resolveCatch, resolveMiss, moveAttracted, noticeLapp, reachedLapp } from './fishing';
 import { spotById, BUILDINGS, buildingById, buildingRects, pushOut } from './world';
-import type { PromiseData, Bait, Voter, GamePhase, SpotId, Lapp, GameEvent, Particle, ActiveTrend } from './types';
+import type { PromiseData, Bait, Voter, GamePhase, SpotId, Lapp, GameEvent, Particle, ActiveTrend, CaughtVote } from './types';
 import { catchLine, CATEGORY_COLORS } from './ui';
 
 export const PARTY_COLORS: Record<PartyCode, string> = {
@@ -40,6 +40,7 @@ export interface GameState {
   lapp: Lapp | null;
   lastEvent: GameEvent | null;
   lastCatch: { title: string; msekBase: number; sourceUrl: string; sourceDomain: string; released: boolean } | null;
+  caughtVotesHistory?: CaughtVote[];
   particles: Particle[];
   nextParticleId: number;
   activeTrend?: ActiveTrend | null;
@@ -102,6 +103,7 @@ export function createGame(opts: CreateGameOpts): GameState {
     spotId, spotX: spot.x, spotY: spot.y,
     timeLeftMs: opts.roundDurationMs ?? ROUND_MS, votes: 0, released: 0, rng, nextVoterId: 1, spawnAccMs: 0,
     bitingVoterId: null, lapp: null, lastEvent: null, lastCatch: null,
+    caughtVotesHistory: [],
     particles: [], nextParticleId: 1,
     scheduledTrends,
     activeTrend: null,
@@ -387,12 +389,17 @@ export function onHookClick(state: GameState, nowMs: number): GameState {
       });
     }
 
+    const caughtVotesHistory = res.released
+      ? (state.caughtVotesHistory ?? [])
+      : [...(state.caughtVotesHistory ?? []), { category: bait.category, title: bait.title, party: state.party }];
+
     return {
       ...state, voters, tackle,
       votes: state.votes + res.votes,
       released: state.released + (res.released ? 1 : 0),
       bitingVoterId: null, lapp: null, lastCatch,
       lastEvent,
+      caughtVotesHistory,
       particles,
       nextParticleId,
     };

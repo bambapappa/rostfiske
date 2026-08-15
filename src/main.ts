@@ -3,7 +3,7 @@ import { loadSprites } from './sprites';
 import { createGame, step, onHookClick, castLapp, type GameState } from './engine';
 import { drawScene } from './render';
 import { bindInput } from './input';
-import { loadStore, saveStore, addScore, bestOf } from './highscore';
+import { loadStore, saveStore, addScore, bestOf, bestByParty } from './highscore';
 import { eventText, showCharacterSelect, renderTackle, renderBuildingBadges, showGameOverModal } from './ui';
 import { activeBait } from './bait';
 import { LOGICAL_W, LOGICAL_H, ROUND_MS, type PartyCode } from './constants';
@@ -167,9 +167,16 @@ async function main(): Promise<void> {
         saveStore(rows);
         drawGameOver(ctx, g, bestOf(rows));
         if (badgesContainer) {
-          showGameOverModal(badgesContainer, g, bestOf(rows), () => {
-            window.location.reload();
-          });
+          showGameOverModal(
+            badgesContainer,
+            g,
+            bestByParty(rows),
+            () => {
+              window.location.reload();
+            },
+            parties,
+            sprites.get('politicians'),
+          );
         }
         return;
       }

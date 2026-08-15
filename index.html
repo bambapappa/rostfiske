@@ -88,53 +88,214 @@
     #tackle .slot .pips{letter-spacing:1px;font-size:10px;}
     #overlay{min-height:1.5em;margin-top:6px;font-size:12px;font-family:monospace;}
 
-    /* Game Over modal overlay */
+    /* Game Over / Valvaka modal overlay */
     .game-over-modal{
       position:absolute;
       inset:0;
       display:flex;
       flex-direction:column;
       align-items:center;
-      justify-content:center;
-      background:rgba(12, 14, 26, 0.85);
-      backdrop-filter:blur(2px);
+      justify-content:flex-start;
+      background:rgba(12, 14, 26, 0.92);
+      backdrop-filter:blur(4px);
       color:#fff;
-      gap:16px;
+      gap:clamp(6px, 1.2vw, 12px);
+      padding:clamp(8px, 1.5vw, 16px);
+      box-sizing:border-box;
+      overflow-y:auto;
       z-index:10;
       animation:fadeIn 0.2s ease-out;
       pointer-events:auto;
     }
-    .game-over-modal h2{
+    .valvaka-title{
       margin:0;
-      font-size:clamp(20px, 2.8vw, 30px);
+      font-size:clamp(16px, 2.2vw, 24px);
       font-weight:700;
       letter-spacing:0.5px;
       color:#ffe66d;
+      text-align:center;
     }
-    .game-over-modal .stats-row{
+    
+    /* Mandates & Threshold section */
+    .valvaka-mandates{
       display:flex;
-      gap:16px;
-      font-size:clamp(12px, 1.4vw, 15px);
-      background:rgba(255, 255, 255, 0.08);
-      padding:8px 18px;
+      flex-direction:column;
+      align-items:center;
+      gap:4px;
+      background:rgba(255, 255, 255, 0.06);
+      padding:6px 14px;
       border-radius:6px;
+      border:1px solid rgba(255, 255, 255, 0.12);
+      width:min(94%, 640px);
+      box-sizing:border-box;
+    }
+    .mandate-headline{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      flex-wrap:wrap;
+      font-size:clamp(13px, 1.6vw, 18px);
+    }
+    .mandate-party{font-weight:700;}
+    .mandate-num strong{color:#ffe66d;font-size:1.15em;}
+    .threshold-badge{
+      font-size:clamp(9px, 1vw, 11px);
+      font-weight:700;
+      padding:2px 7px;
+      border-radius:10px;
+      text-transform:uppercase;
+      letter-spacing:0.3px;
+    }
+    .threshold-badge.over-sparr{
+      background:rgba(46, 204, 113, 0.2);
+      color:#2ecc71;
+      border:1px solid #2ecc71;
+    }
+    .threshold-badge.under-sparr{
+      background:rgba(231, 76, 60, 0.2);
+      color:#e74c3c;
+      border:1px solid #e74c3c;
+    }
+    .mandate-status{
+      font-size:clamp(10px, 1.1vw, 12px);
+      color:#aaa;
+      font-style:italic;
+    }
+    .stats-row{
+      display:flex;
+      gap:clamp(8px, 2vw, 16px);
+      font-size:clamp(10px, 1.1vw, 12px);
+      color:#ddd;
+      margin-top:2px;
+    }
+    .stats-row strong{color:#fff;}
+
+    /* Sakfrågor / Issue Breakdown */
+    .issue-breakdown-section{
+      width:min(94%, 640px);
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      box-sizing:border-box;
+    }
+    .section-title{
+      font-size:clamp(10px, 1.1vw, 12px);
+      font-weight:600;
+      color:#bbb;
+      text-transform:uppercase;
+      letter-spacing:0.5px;
+    }
+    .empty-breakdown{
+      font-size:11px;
+      color:#777;
+      font-style:italic;
+    }
+    .issue-bar{
+      display:flex;
+      height:12px;
+      width:100%;
+      border-radius:3px;
+      overflow:hidden;
+      background:#10121f;
       border:1px solid rgba(255, 255, 255, 0.15);
     }
-    .game-over-modal .stats-row strong{color:#fff;}
-    .game-over-modal .restart-btn{
-      font-family:inherit;
-      font-size:clamp(13px, 1.4vw, 15px);
+    .issue-segment{
+      height:100%;
+      transition:width 0.3s ease;
+    }
+    .issue-legend{
+      display:flex;
+      flex-wrap:wrap;
+      gap:4px 10px;
+      font-size:clamp(9px, 1vw, 11px);
+      color:#ccc;
+    }
+    .issue-legend-item{
+      display:flex;
+      align-items:center;
+      gap:4px;
+    }
+    .legend-chip{
+      width:7px;
+      height:7px;
+      border-radius:2px;
+      flex:none;
+    }
+    .legend-val{color:#888;}
+
+    /* 8-Leader Arcade Highscore Grid */
+    .leader-grid-section{
+      width:min(94%, 640px);
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      box-sizing:border-box;
+    }
+    .leader-highscore-grid{
+      display:grid;
+      grid-template-columns:repeat(4, minmax(0, 1fr));
+      gap:5px;
+    }
+    .party-score-card{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      background:rgba(26, 28, 44, 0.85);
+      border:2px solid #555;
+      border-radius:4px;
+      padding:3px 5px;
+      box-sizing:border-box;
+    }
+    .party-score-card.active-party{
+      background:rgba(40, 46, 74, 0.95);
+      box-shadow:0 0 6px rgba(255, 230, 109, 0.35);
+    }
+    .party-score-card .leader-portrait{
+      width:20px;
+      height:30px;
+      flex:none;
+      image-rendering:pixelated;
+      image-rendering:crisp-edges;
+      background:#10121f;
+      border:1px solid #333;
+      border-radius:2px;
+    }
+    .party-score-card .card-info{
+      display:flex;
+      flex-direction:column;
+      min-width:0;
+      overflow:hidden;
+    }
+    .party-card-name{
+      font-size:clamp(9px, 0.95vw, 11px);
       font-weight:600;
-      padding:10px 24px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .party-card-score{
+      font-size:clamp(8px, 0.85vw, 10px);
+      color:#aaa;
+      white-space:nowrap;
+    }
+    .party-card-score strong{color:#ffe66d;}
+
+    .restart-btn{
+      font-family:inherit;
+      font-size:clamp(12px, 1.3vw, 14px);
+      font-weight:700;
+      padding:6px 20px;
       background:#ffe66d;
       color:#10121f;
       border:none;
       border-radius:4px;
       cursor:pointer;
+      margin-top:2px;
       transition:transform 0.15s, background 0.15s;
-      box-shadow:0 4px 12px rgba(0,0,0,0.5);
+      box-shadow:0 3px 8px rgba(0,0,0,0.5);
     }
-    .game-over-modal .restart-btn:hover{
+    .restart-btn:hover{
       background:#fff;
       transform:scale(1.05);
     }

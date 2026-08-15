@@ -21,6 +21,12 @@ export interface PartyData {
   block: string;
 }
 
+export interface CaughtVote {
+  category: Category;
+  title: string;
+  party: PartyCode;
+}
+
 export interface Bait {
   id: string;
   title: string;

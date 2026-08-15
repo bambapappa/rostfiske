@@ -18,6 +18,17 @@ pnpm dev
 - **Q/W/E/R** — byt plats (torget, skolan, äldreboendet, stationen)
 - **1–5** — välj bete (väljarkategori), eller klicka i betespanelen
 
+### Valvaka & Mandatfördelning (v1.3)
+
+- **Objektiv mandaträknare:** Fångade röster omvandlas symmetriskt till riksdagsmandat (max 349):
+  - *0–3 röster:* 0 mandat (*Under 4%-spärren*)
+  - *4–7 röster:* 15–27 mandat (*Över riksdagsspärren*)
+  - *8–14 röster:* 35–65 mandat (*Starkt valresultat*)
+  - *15+ röster:* 75–349 mandat (*Valsensation*)
+- **4%-spärr badge:** Tydlig visuell status över om partiet klarade riksdagsspärren.
+- **Sakfråge-fördelning:** Horisontell färgstapel som visar fördelningen av vilka frågor väljarna nappade på (Välfärd, Utbildning, Skatter...).
+- **8-ledare arkad-highscore:** Visar alla 8 partiledare i neutral, fast ordning med pixelporträtt och personbästa resultat per parti.
+
 ### Mekanik (v1.2)
 
 - **Kastradie:** lappen kastas max 110 px från politikern — klick utanför radien kastas till cirkelkanten (max 110 px)
