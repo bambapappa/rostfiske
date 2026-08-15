@@ -211,17 +211,18 @@ describe('blockedMove (v1.2)', () => {
     expect(r).toEqual({ x: 34, y: 60, blocked: true });
   });
 
-  it('allows a step onto the door point (door zone)', () => {
-    const v: Voter = { ...base, x: 56, y: 60 };
-    const r = blockedMove(v, 56, 56, BUILDINGS); // exact door coordinate
-    expect(r).toEqual({ x: 56, y: 56, blocked: false });
+  it('allows a step strictly inside the footprint when within the door radius (door zone)', () => {
+    const v: Voter = { ...base, x: 52, y: 62 };
+    // (52,50) is strictly interior (32<52<80, 24<50<56) AND ~7.2px from the
+    // door (56,56) — this exercises the isDoorZone exception INSIDE blockedMove
+    const r = blockedMove(v, 52, 50, BUILDINGS);
+    expect(r).toEqual({ x: 52, y: 50, blocked: false });
   });
 
-  it('allows a step near the door within the door radius', () => {
-    const v: Voter = { ...base, x: 50, y: 62 };
-    const r = blockedMove(v, 52, 58, BUILDINGS); // inside rect, ~4.5px from door
-    expect(r.blocked).toBe(false);
-    expect(r.x).toBe(52);
-    expect(r.y).toBe(58);
+  it('blocks an interior point just outside the door radius', () => {
+    const v: Voter = { ...base, x: 40, y: 60 };
+    // (40,45) is strictly interior but ~19.4px from the door — no exception
+    const r = blockedMove(v, 40, 45, BUILDINGS);
+    expect(r).toEqual({ x: 40, y: 60, blocked: true });
   });
 });
