@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { drawScene } from '../src/render';
 import { createGame } from '../src/engine';
-import { ROUND_MS, HOOK_WINDOW_MS, type PartyCode } from '../src/constants';
+import { ROUND_MS, HOOK_WINDOW_MS, CAST_RADIUS, type PartyCode } from '../src/constants';
 import { BUILDINGS, SPOTS } from '../src/world';
 import type { PartyData, Voter } from '../src/types';
 
@@ -9,13 +9,15 @@ interface Rect { x: number; y: number; w: number; h: number; }
 interface DrawCall { sx: number; sy: number; dx: number; dy: number; dw: number; dh: number; }
 interface StrokeCall { lineDash: number[]; }
 interface TextCall { text: string; x: number; y: number; }
+interface ArcCall { x: number; y: number; r: number; }
 
-function stubCtx(): { ctx: CanvasRenderingContext2D; texts: string[]; textCalls: TextCall[]; rects: Rect[]; draws: DrawCall[]; strokeCalls: StrokeCall[] } {
+function stubCtx(): { ctx: CanvasRenderingContext2D; texts: string[]; textCalls: TextCall[]; rects: Rect[]; draws: DrawCall[]; strokeCalls: StrokeCall[]; arcCalls: ArcCall[] } {
   const texts: string[] = [];
   const textCalls: TextCall[] = [];
   const rects: Rect[] = [];
   const draws: DrawCall[] = [];
   const strokeCalls: StrokeCall[] = [];
+  const arcCalls: ArcCall[] = [];
   const stack: Array<{ strokeStyle: string; globalAlpha: number }> = [];
   let globalAlpha = 1;
   let strokeStyle = '';
@@ -28,7 +30,9 @@ function stubCtx(): { ctx: CanvasRenderingContext2D; texts: string[]; textCalls:
       draws.push({ sx, sy, dx, dy, dw, dh });
     },
     fillText: (s: string, x: number, y: number) => { texts.push(s); textCalls.push({ text: s, x, y }); },
-    beginPath: () => {}, moveTo: () => {}, lineTo: () => {}, arc: () => {}, fill: () => {},
+    beginPath: () => {}, moveTo: () => {}, lineTo: () => {},
+    arc: (x: number, y: number, r: number) => { arcCalls.push({ x, y, r }); },
+    fill: () => {},
     stroke: () => {},
     save: () => { stack.push({ strokeStyle, globalAlpha }); },
     restore: () => { const saved = stack.pop(); if (saved) { strokeStyle = saved.strokeStyle; globalAlpha = saved.globalAlpha; } },
@@ -40,7 +44,7 @@ function stubCtx(): { ctx: CanvasRenderingContext2D; texts: string[]; textCalls:
     fillStyle: '', font: '', textAlign: '', lineWidth: 0,
     measureText: (text: string) => ({ width: text.length * 3 }), // Approximate 6px monospace width
   } as unknown as CanvasRenderingContext2D;
-  return { ctx, texts, textCalls, rects, draws, strokeCalls };
+  return { ctx, texts, textCalls, rects, draws, strokeCalls, arcCalls };
 }
 
 const promises = Array.from({ length: 6 }, (_, i) => ({ id: 'p' + i, title: 't', quote: 'q', party: 's' as PartyCode, category: 'välfärd' as const, msekBase: 1, status: 'aktiv', source: { url: 'u', domain: 'd' } }));
@@ -140,7 +144,7 @@ describe('drawScene', () => {
 
   it('draws a dashed ring around the politician (v1.2 cast radius)', () => {
     const g = createGame({ party: 's', promises });
-    const { ctx, strokeCalls } = stubCtx();
+    const { ctx, strokeCalls, arcCalls } = stubCtx();
     drawScene(ctx, g, new Map(), parties, 0);
     // Should have setLineDash([3, 3]) for the dashed ring
     const dashCall = strokeCalls.find((c) => c.lineDash.length === 2 && c.lineDash[0] === 3 && c.lineDash[1] === 3);
@@ -148,6 +152,12 @@ describe('drawScene', () => {
     // Verify the ring uses the party color by checking strokeStyle was set at some point
     // (The exact value is restored to empty by ctx.restore(), but we can verify it was set)
     expect(strokeCalls.length).toBeGreaterThan(0);
+    // The ring must be centered at (spotX, spotY) — the exact point the engine's
+    // castLapp measures CAST_RADIUS from (feet anchor), not the torso
+    const ring = arcCalls.find((a) => a.r === CAST_RADIUS);
+    expect(ring).toBeDefined();
+    expect(ring!.x).toBe(g.spotX);
+    expect(ring!.y).toBe(g.spotY);
   });
 
   it('draws building labels centered below each door (v1.2)', () => {

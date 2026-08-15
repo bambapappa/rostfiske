@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { makeRng } from '../src/rng';
 import { rollAge, chooseCategory, matches, spawnVoter, tryEnter, tryExit, spawnAtBuilding, blockedMove, wanderStep } from '../src/voter';
+import { DOOR_ZONE_R } from '../src/world';
 import { BUILDINGS, buildingById } from '../src/world';
 import {
   MINOR_PROBABILITY, LOGICAL_W, LOGICAL_H,
@@ -168,10 +169,10 @@ describe('spawnAtBuilding', () => {
       const v = spawnAtBuilding(r, i, skolan, 0);
       expect(v.state).toBe('wander');
       expect(v.id).toBe(i);
-      expect(v.x).toBeGreaterThanOrEqual(skolan.doorX - 10);
-      expect(v.x).toBeLessThanOrEqual(skolan.doorX + 10);
-      expect(v.y).toBeGreaterThanOrEqual(skolan.doorY - 7);
-      expect(v.y).toBeLessThanOrEqual(skolan.doorY + 7);
+      // jitter is drawn from a DOOR_ZONE_R-radius disc: total displacement from
+      // the door never exceeds the door zone (v1.2 fix — no spawning inside
+      // footprints outside the zone)
+      expect(Math.hypot(v.x - skolan.doorX, v.y - skolan.doorY)).toBeLessThanOrEqual(DOOR_ZONE_R);
       expect(v.x).toBeGreaterThanOrEqual(0); expect(v.x).toBeLessThanOrEqual(LOGICAL_W);
       expect(v.y).toBeGreaterThanOrEqual(0); expect(v.y).toBeLessThanOrEqual(LOGICAL_H);
       expect(v.variant).toBeGreaterThanOrEqual(0);

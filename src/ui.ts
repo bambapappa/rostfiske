@@ -17,6 +17,10 @@ export const CATEGORY_COLORS: Record<Category, string> = {
   'övrigt': '#95a5a6',
 };
 
+/** Neutral gray used whenever a color lookup misses — the tackle-panel chips
+ *  (here) and the canvas voter/party fallback fills (render.ts) share it. */
+export const FALLBACK_COLOR = '#888';
+
 export type LastCatch = NonNullable<GameState['lastCatch']>;
 
 export function formatSummary(state: GameState): string {
@@ -128,7 +132,7 @@ export function renderTackle(container: HTMLElement, tackle: Bait[], activeBaitI
 
     const chip = document.createElement('span');
     chip.className = 'chip';
-    chip.style.background = CATEGORY_COLORS[b.category] ?? '#888';
+    chip.style.background = CATEGORY_COLORS[b.category] ?? FALLBACK_COLOR;
 
     const main = document.createElement('div');
     main.className = 'slot-main';

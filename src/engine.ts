@@ -78,7 +78,9 @@ export function castLapp(state: GameState, x: number, y: number): GameState {
   cy = Math.max(0, Math.min(LOGICAL_H, cy));
 
   // v1.2: a lapp cannot land inside a building footprint — push it out to the
-  // nearest rect edge
+  // nearest rect edge. NOTE: push-out runs AFTER the radius+screen clamps, so
+  // a footprint-edge landing may sit slightly outside CAST_RADIUS (accepted
+  // trade-off: keeping the lapp out of walls matters more than an exact radius).
   const pushed = pushOut(cx, cy, buildingRects());
   cx = pushed.x;
   cy = pushed.y;
@@ -124,6 +126,11 @@ export function step(state: GameState, dtMs: number): GameState {
       return v;
     }
     if (v.state === 'toLapp') {
+      // KNOWN-NOTES: toLapp movement intentionally ignores building footprints
+      // (unlike wanderStep): lapp targets are always outside footprints (see
+      // castLapp's push-out), and blocking an attracted voter en-route could
+      // strand it against a wall — a sanctioned deviation from the README's
+      // blanket "väljare går ej genom hus" claim.
       const lapp = state.lapp;
       if (!lapp) {
         return { ...v, state: 'wander' as const, attractToX: undefined, attractToY: undefined };

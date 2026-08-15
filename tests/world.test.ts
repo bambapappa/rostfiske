@@ -102,11 +102,18 @@ describe('building footprints (v1.2)', () => {
     expect(inside(80, 40)).toBe(false); // right edge
   });
   it('isDoorZone: the door point is a zone, points beyond r are not', () => {
-    const b = buildingById('hus1'); // door at (120,164)
-    expect(isDoorZone(120, 164, b)).toBe(true);
-    expect(isDoorZone(125, 164, b)).toBe(true); // within default r=10
-    expect(isDoorZone(131, 164, b)).toBe(false); // beyond r=10
-    expect(isDoorZone(120, 164, b, 20)).toBe(true); // custom radius
+    const b = buildingById('hus1'); // door at (120,166)
+    expect(isDoorZone(120, 166, b)).toBe(true);
+    expect(isDoorZone(125, 166, b)).toBe(true); // within default r=10
+    expect(isDoorZone(131, 166, b)).toBe(false); // beyond r=10
+    expect(isDoorZone(120, 166, b, 20)).toBe(true); // custom radius
+  });
+  it('every door sits exactly on its footprint edge (v1.2 fix: hus1-3 too)', () => {
+    // all six doors anchor on the rect's bottom edge — never 2px inside
+    for (const b of BUILDINGS) {
+      const r = buildingRect(b);
+      expect(b.doorY).toBe(r.y + r.h);
+    }
   });
   it('pushOut moves an interior point to the nearest edge, leaves outside points alone', () => {
     const rects = buildingRects();

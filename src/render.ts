@@ -1,6 +1,6 @@
 import { LOGICAL_W, LOGICAL_H, TOWN_COLS, TOWN_ROWS, ROUND_MS, HOOK_WINDOW_MS, PARTIES, CAST_RADIUS, LEADER_W, LEADER_H } from './constants';
 import { SPOTS, BUILDINGS } from './world';
-import { CATEGORY_COLORS } from './ui';
+import { CATEGORY_COLORS, FALLBACK_COLOR } from './ui';
 import type { GameState } from './engine';
 import type { SheetMap } from './sprites';
 import type { PartyData, Voter } from './types';
@@ -88,7 +88,7 @@ const PROPS: Array<[col: number, row: number, tile: number]> = [
 ];
 
 function partyColor(parties: PartyData[], code: string): string {
-  return parties.find((p) => p.code === code)?.color ?? '#888';
+  return parties.find((p) => p.code === code)?.color ?? FALLBACK_COLOR;
 }
 
 /** Source cell in voters.png for a voter's appearance variant.
@@ -137,15 +137,15 @@ export function drawScene(ctx: CanvasRenderingContext2D, state: GameState, sprit
   ctx.fillText('Torget', torget.x - 14, torget.y - 14);
 
   // --- v1.2 cast radius ring (dashed, party color at 25% alpha) ---
+  // Centered at (spotX, spotY): the exact point the engine's castLapp
+  // measures CAST_RADIUS from (the politician's feet anchor).
   const pcol = partyColor(parties, state.party);
-  const ringCenterX = state.spotX;
-  const ringCenterY = state.spotY - 8;
   ctx.save();
   ctx.beginPath();
   ctx.setLineDash([3, 3]);
   ctx.strokeStyle = pcol;
   ctx.globalAlpha = 0.25;
-  ctx.arc(ringCenterX, ringCenterY, CAST_RADIUS, 0, Math.PI * 2);
+  ctx.arc(state.spotX, state.spotY, CAST_RADIUS, 0, Math.PI * 2);
   ctx.stroke();
   ctx.restore();
 
@@ -173,7 +173,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, state: GameState, sprit
       // feet at the voter position: adults' shoes at cell y14, minors' at y13
       ctx.drawImage(voterImg, sx, sy, 16, 16, Math.round(v.x) - 8, Math.round(v.y) - (minor ? 13 : 14), 16, 16);
     } else {
-      ctx.fillStyle = CATEGORY_COLORS[v.category] ?? '#fff';
+      ctx.fillStyle = CATEGORY_COLORS[v.category] ?? FALLBACK_COLOR;
       ctx.fillRect(Math.round(v.x) - 3, Math.round(v.y) - 3, minor ? 5 : 7, minor ? 5 : 7);
     }
   }

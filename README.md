@@ -22,7 +22,7 @@ pnpm dev
 - **Kastradie:** lappen kastas max 110 px från politikern — klick utanför radien kastas till cirkelkanten (max 110 px)
 - **Krock:** väljare går ej genom hus — de stannar på trottoarer och torg
 - **Naturligt vandrande:** varje väljare har egen fart, svänger mjukt och stannar ibland ("tittar i skyltfönster")
-- **Betespanel:** de fem betena syns med hållbarhets-pips; byt med 1–5 eller klick
+- **Betespanel:** de fem betena syns med hållbarhets-pips; pips är medvetet partineutralt vita; byt med 1–5 eller klick
 - **Porträtt i karaktärsvälet:** varje valknapp visar partiledarens pixelporträtt (16×24, uppskalat ×3) ovanför partinamnet
 - **Ledare 2026:** karikatyrerna föreställer de aktuella partiledarna — hela listan med källor finns i `public/sprites/README.md`. (MP har två språkrör; spelet använder en avatar per parti och valde Amanda Lind.)
 

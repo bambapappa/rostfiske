@@ -6,7 +6,7 @@ import {
   TURN_RATE_MAX, IDLE_PROB_PER_SEC, IDLE_MIN_MS, IDLE_MAX_MS,
   type Category,
 } from './constants';
-import { buildingRect, pointInRect, isDoorZone } from './world';
+import { buildingRect, pointInRect, isDoorZone, DOOR_ZONE_R } from './world';
 import type { Voter, VoterAge, VoterState, FishingSpot, Building } from './types';
 
 export function rollAge(rng: Rng): VoterAge {
@@ -95,10 +95,15 @@ export function tryExit(v: Voter, b: Building, rng: Rng, nowMs: number): Voter {
   };
 }
 
-/** Spawn a voter at a building's door (± small jitter) with the building's category bias. Pure. */
+/** Spawn a voter at a building's door with the building's category bias. Pure.
+ *  Jitter is drawn from a disc of radius DOOR_ZONE_R (random angle, random
+ *  radius): total displacement from the door never exceeds the door zone, so a
+ *  spawn can never land inside a footprint outside the zone. */
 export function spawnAtBuilding(rng: Rng, id: number, b: Building, nowMs: number): Voter {
-  const x = clamp(b.doorX + (rng.next() * 20 - 10), 0, LOGICAL_W);
-  const y = clamp(b.doorY + (rng.next() * 14 - 7), 0, LOGICAL_H);
+  const angle = rng.next() * Math.PI * 2;
+  const radius = rng.next() * DOOR_ZONE_R;
+  const x = clamp(b.doorX + Math.cos(angle) * radius, 0, LOGICAL_W);
+  const y = clamp(b.doorY + Math.sin(angle) * radius, 0, LOGICAL_H);
   const heading = rng.next() * Math.PI * 2;
   const state: VoterState = 'wander';
   return {

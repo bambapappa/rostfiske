@@ -1,5 +1,5 @@
 // Generates public/sprites/politicians.png: 8 caricatures of the REAL 2026
-// Swedish party leaders, 16x24 each on a 128x48 sheet (4 cols x 2 rows).
+// Swedish party leaders, 16x24 each on a 64x48 sheet (4 cols x 2 rows).
 // Cell order matches PARTIES order:
 //   row 0: s, m, sd, c
 //   row 1: v, kd, l, mp
