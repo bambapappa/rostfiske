@@ -1,4 +1,4 @@
-import { LOGICAL_W, LOGICAL_H, TOWN_COLS, TOWN_ROWS, ROUND_MS, HOOK_WINDOW_MS, PARTIES } from './constants';
+import { LOGICAL_W, LOGICAL_H, TOWN_COLS, TOWN_ROWS, ROUND_MS, HOOK_WINDOW_MS, PARTIES, CAST_RADIUS } from './constants';
 import { SPOTS } from './world';
 import { activeBait } from './bait';
 import type { GameState } from './engine';
@@ -126,6 +126,19 @@ export function drawScene(ctx: CanvasRenderingContext2D, state: GameState, sprit
     ctx.fillText(s.name, s.x - 12, s.y - 8);
   }
 
+  // --- v1.2 cast radius ring (dashed, party color at 25% alpha) ---
+  const pcol = partyColor(parties, state.party);
+  const ringCenterX = state.spotX;
+  const ringCenterY = state.spotY - 8;
+  ctx.save();
+  ctx.beginPath();
+  ctx.setLineDash([3, 3]);
+  ctx.strokeStyle = pcol;
+  ctx.globalAlpha = 0.25;
+  ctx.arc(ringCenterX, ringCenterY, CAST_RADIUS, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+
   // --- fishing line + lapp (cast note) ---
   if (state.lapp) {
     const { x, y } = state.lapp;
@@ -177,7 +190,6 @@ export function drawScene(ctx: CanvasRenderingContext2D, state: GameState, sprit
   }
 
   // --- politician (caricature cell per party index; shoes at cell y15) ---
-  const pcol = partyColor(parties, state.party);
   const pol = sprites.get('politicians');
   const pIdx = PARTIES.indexOf(state.party);
   if (pol && pIdx >= 0) {

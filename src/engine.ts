@@ -1,5 +1,5 @@
 import { makeRng, type Rng } from './rng';
-import { ROUND_MS, MAX_VOTERS, TACKLE_SIZE, VOTER_SPEED, LOGICAL_W, LOGICAL_H, type PartyCode } from './constants';
+import { ROUND_MS, MAX_VOTERS, TACKLE_SIZE, VOTER_SPEED, LOGICAL_W, LOGICAL_H, CAST_RADIUS, type PartyCode } from './constants';
 import { buildTackle, activeBait, baitById, wearBait } from './bait';
 import { tryEnter, tryExit, spawnAtBuilding } from './voter';
 import { beginBite, hookSucceeds, bittenVoterEscapes, resolveCatch, resolveMiss, moveAttracted, noticeLapp, reachedLapp } from './fishing';
@@ -51,14 +51,32 @@ export function createGame(opts: CreateGameOpts): GameState {
   };
 }
 
-/** Cast the note (lapp) carrying the active bait. Clamped to the water bounds.
- *  Without an active bait the state is returned unchanged. Pure. */
+/** Cast the note (lapp) carrying the active bait. Clamped to CAST_RADIUS from politician,
+ *  then to screen bounds. Without an active bait the state is returned unchanged. Pure. */
 export function castLapp(state: GameState, x: number, y: number): GameState {
   if (state.phase !== 'playing') return state;
   const bait = activeBait(state.tackle);
   if (!bait) return state;
-  const cx = Math.max(0, Math.min(LOGICAL_W, x));
-  const cy = Math.max(0, Math.min(LOGICAL_H, y));
+
+  // v1.2: cast radius — clamp distance from politician to CAST_RADIUS
+  const dx = x - state.spotX;
+  const dy = y - state.spotY;
+  const dist = Math.hypot(dx, dy);
+  let cx: number, cy: number;
+  if (dist > CAST_RADIUS) {
+    // Scale toward politician so distance = exactly CAST_RADIUS
+    const scale = CAST_RADIUS / dist;
+    cx = state.spotX + dx * scale;
+    cy = state.spotY + dy * scale;
+  } else {
+    cx = x;
+    cy = y;
+  }
+
+  // Existing screen clamp
+  cx = Math.max(0, Math.min(LOGICAL_W, cx));
+  cy = Math.max(0, Math.min(LOGICAL_H, cy));
+
   return {
     ...state,
     lapp: { x: cx, y: cy, baitId: bait.id },

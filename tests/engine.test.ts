@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createGame, step, onHookClick, castLapp, type GameState } from '../src/engine';
-import { ROUND_MS, MAX_VOTERS, TACKLE_SIZE, LOGICAL_W, LOGICAL_H, CATEGORIES } from '../src/constants';
+import { ROUND_MS, MAX_VOTERS, TACKLE_SIZE, LOGICAL_W, LOGICAL_H, CATEGORIES, CAST_RADIUS } from '../src/constants';
 import { activeBait } from '../src/bait';
 import { buildingById } from '../src/world';
 import type { PromiseData, Voter } from '../src/types';
@@ -36,13 +36,69 @@ describe('castLapp', () => {
     const g = mk();
     const bait = activeBait(g.tackle)!;
     const s = castLapp(g, -20, 99_999);
-    expect(s.lapp).toEqual({ x: 0, y: LOGICAL_H, baitId: bait.id });
+    // v1.2: cast radius applies first, then screen clamp
+    // The far-away click is first clamped to CAST_RADIUS from (192,104),
+    // then screen-clamped to y=LOGICAL_H
+    expect(s.lapp).toBeDefined();
+    expect(s.lapp!.y).toBe(LOGICAL_H);
+    expect(s.lapp!.x).toBeGreaterThan(0);
+    expect(s.lapp!.x).toBeLessThan(LOGICAL_W);
+    expect(s.lapp!.baitId).toBe(bait.id);
     expect(s.lastEvent).toEqual({ kind: 'cast', text: `Kastar: ${bait.title}` });
   });
   it('is a no-op without an active bait', () => {
     const g = mk();
     const wornOut = { ...g, tackle: g.tackle.map((b) => ({ ...b, durability: 0 })) };
     expect(castLapp(wornOut, 100, 100)).toBe(wornOut);
+  });
+  describe('cast radius (v1.2)', () => {
+    it('clamps a cast beyond radius to exactly CAST_RADIUS distance', () => {
+      const g = mk();
+      const bait = activeBait(g.tackle)!;
+      // spot at (192, 104) by default (torget) — click far to the right at same y
+      const s = castLapp(g, 500, g.spotY);
+      expect(s.lapp).toBeDefined();
+      const dx = s.lapp!.x - g.spotX;
+      const dy = s.lapp!.y - g.spotY;
+      const dist = Math.hypot(dx, dy);
+      // Should be clamped to CAST_RADIUS (or slightly less if screen bounds apply)
+      expect(dist).toBeGreaterThanOrEqual(CAST_RADIUS - 1);
+      expect(dist).toBeLessThanOrEqual(CAST_RADIUS + 1);
+      // direction should be horizontal right (cos=1, sin=0)
+      expect(dx).toBeGreaterThan(CAST_RADIUS - 2);
+      expect(dy).toBeCloseTo(0, 0);
+    });
+    it('preserves clicks within the radius unchanged', () => {
+      const g = mk();
+      const bait = activeBait(g.tackle)!;
+      const withinX = g.spotX + 50;
+      const withinY = g.spotY - 30;
+      const s = castLapp(g, withinX, withinY);
+      expect(s.lapp).toBeDefined();
+      expect(s.lapp!.x).toBeCloseTo(withinX, 1);
+      expect(s.lapp!.y).toBeCloseTo(withinY, 1);
+    });
+    it('clamps at a diagonal angle within screen bounds', () => {
+      const g = mk();
+      const bait = activeBait(g.tackle)!;
+      // click at 45° up-right far beyond radius, but away from screen edges
+      const angle = Math.PI / 4;
+      const farX = g.spotX + CAST_RADIUS * 5 * Math.cos(angle);
+      const farY = g.spotY - CAST_RADIUS * 5 * Math.sin(angle);
+      const s = castLapp(g, farX, farY);
+      expect(s.lapp).toBeDefined();
+      const dx = s.lapp!.x - g.spotX;
+      const dy = s.lapp!.y - g.spotY;
+      const dist = Math.hypot(dx, dy);
+      // Should be clamped to CAST_RADIUS (within screen bounds)
+      expect(dist).toBeGreaterThanOrEqual(CAST_RADIUS - 1);
+      expect(dist).toBeLessThanOrEqual(CAST_RADIUS + 1);
+      // direction should be 45° (cos=sin≈0.707)
+      const expectedDx = CAST_RADIUS * Math.cos(angle);
+      const expectedDy = -CAST_RADIUS * Math.sin(angle);
+      expect(dx).toBeCloseTo(expectedDx, 1);
+      expect(dy).toBeCloseTo(expectedDy, 1);
+    });
   });
 });
 
@@ -105,16 +161,19 @@ describe('recast while voters are en route', () => {
       lapp: { x: 200, y: 120, baitId: bait.id },
       voters: [voter({ id: 9, x: 160, y: 120, category: bait.category, state: 'toLapp', attractToX: 200, attractToY: 120 })],
     };
-    const recast = castLapp(g1, 350, 120); // player recasts elsewhere (same active bait)
-    expect(recast.lapp).toEqual({ x: 350, y: 120, baitId: bait.id });
+    // v1.2: recast position is now clamped by CAST_RADIUS from politician at (200,120)
+    // Original target (350, 120) is 150px away, so it gets clamped to ~110px
+    const recast = castLapp(g1, 350, 120);
+    expect(recast.lapp).toBeDefined();
+    expect(recast.lapp!.baitId).toBe(bait.id);
     const s1 = step(recast, 1_000);
     const v1 = s1.voters.find((v) => v.id === 9)!;
     expect(v1.state).toBe('toLapp');
-    expect(v1.attractToX).toBe(350);
-    expect(v1.attractToY).toBe(120);
+    expect(v1.attractToX).toBe(recast.lapp!.x);
+    expect(v1.attractToY).toBe(recast.lapp!.y);
     // 34 px/s · 1 s = 34 px toward the NEW lapp — not frozen at stale coordinates
     expect(v1.x).toBeGreaterThan(160);
-    expect(v1.x).toBeLessThan(350);
+    expect(v1.x).toBeLessThan(recast.lapp!.x);
     // no toLapp voter ever stalls: each step closes the distance while en route
     let s = s1;
     for (let i = 0; i < 5; i++) {
@@ -123,7 +182,7 @@ describe('recast while voters are en route', () => {
       const after = s.voters.find((v) => v.id === 9)!;
       if (after.state === 'toLapp') expect(after.x).toBeGreaterThan(before);
     }
-    // 34 px/s · 10 s = 340 px ≥ the 190 px gap → reaches the live lapp and bites
+    // 34 px/s · 10 s = 340 px ≥ the gap to the radius-clamped lapp → reaches and bites
     const s2 = step(s, 10_000);
     expect(s2.voters.find((v) => v.id === 9)!.state).toBe('biting');
     expect(s2.bitingVoterId).toBe(9);

@@ -19,6 +19,7 @@ export const ATTRACT_SPEED = 34;
 export const MIN_PROMISES_PER_PARTY = 5;
 
 // Angling (lapp)
+export const CAST_RADIUS = 110; // px: max cast distance from politician
 export const NOTICE_RADIUS = 80; // px: a wandering voter this close may notice the lapp
 export const NOTICE_PROB_PER_SEC = 0.4;
 export const PICKUP_DIST = 4; // px: voter picks up the lapp when within this distance
