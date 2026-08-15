@@ -17,6 +17,9 @@ const SPOT_KEYS: Record<string, SpotId> = {
   w: 'skolan',
   e: 'aldreboendet',
   r: 'stationen',
+  a: 'bageriet',
+  s: 'biblioteket',
+  d: 'apoteket',
 };
 
 export function bindInput(canvas: HTMLCanvasElement, h: InputHandlers): () => void {

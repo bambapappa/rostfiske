@@ -3,9 +3,9 @@ import { SPOTS, spotById, BUILDINGS, buildingById, buildingRects, buildingRect, 
 import { LOGICAL_W, LOGICAL_H } from '../src/constants';
 
 describe('city spots', () => {
-  it('has 4 spots with distinct ids', () => {
-    expect(SPOTS).toHaveLength(4);
-    expect(new Set(SPOTS.map(s => s.id)).size).toBe(4);
+  it('has 7 spots with distinct ids (all 6 buildings + torget)', () => {
+    expect(SPOTS).toHaveLength(7);
+    expect(new Set(SPOTS.map(s => s.id)).size).toBe(7);
   });
   it('every spot stands inside the screen', () => {
     for (const s of SPOTS) {
@@ -23,9 +23,11 @@ describe('city spots', () => {
   it('station is biased toward infrastruktur', () => {
     expect((spotById('stationen').bias.infrastruktur ?? 0)).toBeGreaterThan(1);
   });
-  it('torget is flat (no bias > 1)', () => {
-    const t = spotById('torget');
-    expect(Object.values(t.bias).every(v => v === undefined)).toBe(true);
+  it('torget and neutral shops have flat bias (no bias > 1)', () => {
+    for (const id of ['torget', 'bageriet', 'biblioteket', 'apoteket'] as const) {
+      const s = spotById(id);
+      expect(Object.values(s.bias).every(v => v === undefined || v <= 1)).toBe(true);
+    }
   });
 });
 
@@ -139,6 +141,9 @@ describe('spotAt (v1.2.2 click-to-move)', () => {
     expect(spotAt(80, 76)).toBe('skolan');        // skolan door
     expect(spotAt(430, 76)).toBe('aldreboendet'); // aldreboendet door
     expect(spotAt(256, 56)).toBe('stationen');    // stationen door
+    expect(spotAt(140, 238)).toBe('bageriet');    // bageriet door
+    expect(spotAt(256, 248)).toBe('biblioteket'); // biblioteket door
+    expect(spotAt(392, 238)).toBe('apoteket');    // apoteket door
     expect(spotAt(80 + 24, 76)).toBe('skolan');   // exactly at radius = hit
     expect(spotAt(80 + 25, 76)).toBeNull();       // just outside = miss
   });

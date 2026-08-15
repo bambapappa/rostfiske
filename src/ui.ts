@@ -1,5 +1,5 @@
 import type { GameState } from './engine';
-import { PARTIES, LEADER_W, LEADER_H, type Category, type PartyCode } from './constants';
+import { PARTIES, LEADER_W, LEADER_H, LOGICAL_W, LOGICAL_H, type Category, type PartyCode } from './constants';
 import type { GameEvent, PartyData, Bait } from './types';
 
 /** Category → chip color (pixel-palette hex). Single source of truth: the
@@ -159,5 +159,32 @@ export function renderTackle(container: HTMLElement, tackle: Bait[], activeBaitI
     slot.appendChild(main);
     if (!worn) slot.addEventListener('click', () => onSelect(i));
     container.appendChild(slot);
+  }
+}
+
+/** Render crisp DOM badge overlays for all fishing spots over the game canvas.
+ *  Positions are calculated as percentages of the logical canvas dimensions (LOGICAL_W × LOGICAL_H)
+ *  so they scale perfectly and sharply at any viewport and DPI. */
+export function renderBuildingBadges(
+  container: HTMLElement,
+  spots: import('./types').FishingSpot[],
+  activeSpotId: import('./types').SpotId,
+  onSelect: (id: import('./types').SpotId) => void,
+): void {
+  container.replaceChildren();
+  for (const s of spots) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'building-badge' + (s.id === activeSpotId ? ' active' : '');
+    btn.textContent = s.name;
+    const leftPct = (s.x / LOGICAL_W) * 100;
+    const topPct = (s.id === 'torget' ? (s.y - 18) / LOGICAL_H : (s.y + 4) / LOGICAL_H) * 100;
+    btn.style.left = `${leftPct}%`;
+    btn.style.top = `${topPct}%`;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      onSelect(s.id);
+    });
+    container.appendChild(btn);
   }
 }

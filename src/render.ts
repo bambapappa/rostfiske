@@ -18,7 +18,6 @@ const TILE_TREE_FALL = 3;    // autumn tree (prop)
 const TILE_BUSH = 16;        // bush (prop)
 const TILE_DIRT = 25;        // plain dirt road
 const TILE_PLAZA = 109;      // plain light concrete (torget)
-const TILE_WATER = 111;      // water with waves
 const GRAY_TOP = [48, 49, 50];   // slate-roof building, roof row (left/mid/right)
 const GRAY_BOT = [60, 61, 62];   // slate-roof building, wall row
 const RED_TOP = [52, 53, 54];    // red-roof building, roof row
@@ -70,9 +69,6 @@ function buildTerrain(): number[][] {
   grid[14]![8] = TILE_DIRT;  // bageriet door
   grid[15]![16] = TILE_DIRT; // biblioteket door
   grid[14]![24] = TILE_DIRT; // apoteket door
-  // small pond, bottom-right
-  grid[14]![28] = TILE_WATER; grid[14]![29] = TILE_WATER; grid[14]![30] = TILE_WATER;
-  grid[15]![28] = TILE_WATER; grid[15]![29] = TILE_WATER; grid[15]![30] = TILE_WATER;
   return grid;
 }
 
@@ -85,11 +81,11 @@ const PROPS: Array<[col: number, row: number, tile: number]> = [
   [8, 0, TILE_TREE], [10, 0, TILE_TREE_FALL], [12, 0, TILE_TREE], [14, 0, TILE_TREE_FALL],
   [18, 0, TILE_TREE], [20, 0, TILE_TREE_FALL], [22, 0, TILE_TREE], [24, 0, TILE_TREE_FALL],
   [26, 0, TILE_TREE], [28, 0, TILE_TREE], [30, 0, TILE_TREE_FALL],
-  // bottom edge (skip pond cols 28..30)
+  // bottom edge
   [0, 17, TILE_TREE], [2, 17, TILE_TREE_FALL], [4, 17, TILE_TREE], [6, 17, TILE_TREE],
   [8, 17, TILE_TREE_FALL], [10, 17, TILE_TREE], [12, 17, TILE_TREE], [14, 17, TILE_TREE_FALL],
   [18, 17, TILE_TREE], [20, 17, TILE_TREE], [22, 17, TILE_TREE_FALL], [24, 17, TILE_TREE],
-  [26, 17, TILE_TREE_FALL], [31, 17, TILE_TREE],
+  [26, 17, TILE_TREE_FALL], [28, 17, TILE_TREE], [30, 17, TILE_TREE_FALL], [31, 17, TILE_TREE],
   // side edges
   [0, 3, TILE_TREE], [0, 6, TILE_TREE_FALL], [0, 9, TILE_TREE], [0, 12, TILE_TREE_FALL], [0, 15, TILE_TREE],
   [31, 3, TILE_TREE_FALL], [31, 6, TILE_TREE], [31, 9, TILE_TREE_FALL], [31, 12, TILE_TREE],
@@ -97,6 +93,7 @@ const PROPS: Array<[col: number, row: number, tile: number]> = [
   [1, 8, TILE_TREE], [2, 10, TILE_BUSH], [10, 8, TILE_TREE_FALL], [11, 10, TILE_BUSH],
   [21, 8, TILE_BUSH], [22, 10, TILE_TREE], [29, 7, TILE_TREE_FALL], [30, 9, TILE_BUSH],
   [6, 15, TILE_TREE], [11, 16, TILE_BUSH], [20, 15, TILE_TREE_FALL], [26, 15, TILE_BUSH],
+  [29, 14, TILE_BUSH], [30, 14, TILE_TREE],
 ];
 
 function partyColor(parties: PartyData[], code: string): string {

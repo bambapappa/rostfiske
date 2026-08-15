@@ -4,18 +4,54 @@
   <meta charset="utf-8" />
   <title>Röstfiske</title>
   <style>
-    html,body{margin:0;background:#0c0e1a;color:#fff;font-family:monospace;}
+    html,body{margin:0;background:#0c0e1a;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
     #wrap{display:flex;flex-direction:column;align-items:center;padding:8px;}
-    canvas{width:min(96vw, 1152px);image-rendering:pixelated;image-rendering:crisp-edges;background:#1a1c2c;border:2px solid #333;}
-    #overlay{min-height:1.5em;margin-top:6px;font-size:12px;}
-    /* character-select grid: every party framed identically (neutrality) */
     #select{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;width:min(96vw,1152px);margin:6px 0;}
     #select .party-option{font:inherit;font-size:13px;padding:10px 4px;color:#fff;background:#1a1c2c;border:2px solid #888;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;}
     #select .party-option:hover{background:#262a44;}
-    /* portrait: the 48×72 leader canvas beside the party name — overrides the
-       global game-canvas sizing; pixelated like the rest of the art */
     #select .party-option canvas{width:48px;height:72px;flex:none;image-rendering:pixelated;image-rendering:crisp-edges;background:#10121f;border:1px solid #444;}
-    /* tackle panel: 5 identical slots (neutrality); bait line moved here from the canvas HUD */
+    
+    /* Stage holding the game canvas and high-res DOM overlay */
+    #stage{position:relative;width:min(96vw,1152px);aspect-ratio:16/9;background:#1a1c2c;border:2px solid #333;border-radius:4px;overflow:hidden;}
+    canvas#game{width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges;}
+    
+    /* Crisp DOM building badges */
+    #badges{position:absolute;inset:0;pointer-events:none;}
+    .building-badge{
+      position:absolute;
+      transform:translate(-50%, 0);
+      background:rgba(16, 18, 31, 0.88);
+      border:1px solid rgba(255, 255, 255, 0.25);
+      border-radius:3px;
+      color:#fff;
+      font-size:clamp(10px, 1.15vw, 13px);
+      font-weight:600;
+      letter-spacing:0.2px;
+      padding:2px 6px;
+      pointer-events:auto;
+      cursor:pointer;
+      user-select:none;
+      box-shadow:0 2px 4px rgba(0,0,0,0.6);
+      transition:all 0.15s ease-out;
+    }
+    .building-badge:hover{
+      background:rgba(38, 42, 68, 0.98);
+      border-color:#ffe66d;
+      color:#ffe66d;
+      transform:translate(-50%, -2px) scale(1.05);
+      box-shadow:0 3px 6px rgba(0,0,0,0.8);
+    }
+    .building-badge.active{
+      border-color:#ffe66d;
+      background:rgba(30, 36, 60, 0.98);
+      box-shadow:0 0 0 1px #ffe66d, 0 2px 5px rgba(0,0,0,0.7);
+    }
+    .building-badge.active::after{
+      content:' ●';
+      color:#ffe66d;
+      font-size:9px;
+    }
+
     #tackle{display:flex;gap:4px;width:min(96vw,1152px);margin:6px 0;}
     #tackle .slot{flex:1;min-width:0;display:flex;gap:5px;align-items:flex-start;font-size:11px;line-height:1.3;background:#1a1c2c;border:2px solid #444;padding:4px 5px;cursor:pointer;}
     #tackle .slot.active{border-color:#ffe66d;}
@@ -26,12 +62,16 @@
     #tackle .slot .title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     #tackle .slot .pips{letter-spacing:1px;font-size:10px;}
     #tackle .slot .source{color:#888;font-size:10px;}
+    #overlay{min-height:1.5em;margin-top:6px;font-size:12px;font-family:monospace;}
   </style>
 </head>
 <body>
   <div id="wrap">
     <div id="select" aria-label="Välj partiledare"></div>
-    <canvas id="game"></canvas>
+    <div id="stage">
+      <canvas id="game"></canvas>
+      <div id="badges" aria-label="Platser"></div>
+    </div>
     <div id="tackle" aria-label="Beteslådan"></div>
     <div id="overlay">Välj en partiledare ovan för att börja — klicka på en byggnad för att gå dit · klicka på marken för att kasta · mellanslag = mothugg · 1–5 = bete</div>
   </div>

@@ -86,7 +86,10 @@ describe('bindInput', () => {
     click(canvas, 80, 76);    // skolan door
     click(canvas, 430, 76);   // aldreboendet door
     click(canvas, 256, 56);   // stationen door
-    expect(calls.spot).toEqual(['skolan', 'aldreboendet', 'stationen']);
+    click(canvas, 140, 238);  // bageriet door
+    click(canvas, 256, 248);  // biblioteket door
+    click(canvas, 392, 238);  // apoteket door
+    expect(calls.spot).toEqual(['skolan', 'aldreboendet', 'stationen', 'bageriet', 'biblioteket', 'apoteket']);
     expect(calls.cast).toHaveLength(0);
   });
 
@@ -135,12 +138,12 @@ describe('bindInput', () => {
       expect(calls.spot).toEqual(['torget', 'torget']);
     });
 
-    it('q/w/e/r select the four spots', () => {
+    it('q/w/e/r/a/s/d select all fishing spots', () => {
       const canvas = new FakeCanvas();
       const { h, calls } = handlers();
       bindInput(canvas as unknown as HTMLCanvasElement, h);
-      for (const k of ['q', 'w', 'e', 'r']) press(canvas, k);
-      expect(calls.spot).toEqual(['torget', 'skolan', 'aldreboendet', 'stationen']);
+      for (const k of ['q', 'w', 'e', 'r', 'a', 's', 'd']) press(canvas, k);
+      expect(calls.spot).toEqual(['torget', 'skolan', 'aldreboendet', 'stationen', 'bageriet', 'biblioteket', 'apoteket']);
     });
 
     it('1–5 select bait slots 0–4', () => {

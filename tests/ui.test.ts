@@ -361,3 +361,29 @@ describe('renderTackle', () => {
     }
   });
 });
+
+describe('renderBuildingBadges', () => {
+  const g = globalThis as unknown as { document?: { createElement: (t: string) => FakeEl } };
+  beforeEach(() => {
+    g.document = { createElement: (tag: string) => fakeEl(tag) };
+  });
+  afterEach(() => {
+    delete g.document;
+  });
+
+  it('renders one button per spot with correct text and active class', async () => {
+    const { renderBuildingBadges } = await import('../src/ui');
+    const { SPOTS } = await import('../src/world');
+    const container = fakeEl('div');
+    const picked: string[] = [];
+    renderBuildingBadges(container as unknown as HTMLElement, SPOTS, 'skolan', (id) => picked.push(id));
+    expect(container.children).toHaveLength(SPOTS.length);
+    const skolanBtn = container.children.find((c) => c.textContent === 'Skolan')!;
+    expect(skolanBtn).toBeDefined();
+    expect(skolanBtn.className).toContain('active');
+    // Clicking triggers onSelect
+    skolanBtn.listeners['click']![0]!({ stopPropagation: () => {} });
+    expect(picked).toEqual(['skolan']);
+  });
+});
+

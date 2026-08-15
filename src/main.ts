@@ -4,10 +4,11 @@ import { createGame, step, onHookClick, castLapp, type GameState } from './engin
 import { drawScene } from './render';
 import { bindInput } from './input';
 import { loadStore, saveStore, addScore, bestOf } from './highscore';
-import { eventText, showCharacterSelect, renderTackle } from './ui';
+import { eventText, showCharacterSelect, renderTackle, renderBuildingBadges } from './ui';
 import { activeBait } from './bait';
 import { LOGICAL_W, LOGICAL_H, ROUND_MS, type PartyCode } from './constants';
-import { spotById } from './world';
+import { SPOTS, spotById } from './world';
+import type { SpotId } from './types';
 
 async function main(): Promise<void> {
   const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -19,6 +20,7 @@ async function main(): Promise<void> {
   const store = loadStore();
   const overlay = document.getElementById('overlay');
   const tacklePanel = document.getElementById('tackle');
+  const badgesContainer = document.getElementById('badges');
 
   // Start flow: character select → game. All 8 parties presented identically
   // (same frame, same 48×72 pixel portrait, PARTIES order).
@@ -46,6 +48,18 @@ async function main(): Promise<void> {
     let prevTackle: GameState['tackle'] | null = null;
     let prevActiveId: string | null | undefined;
 
+    const setSpot = (id: SpotId): void => {
+      const s = spotById(id);
+      g = { ...g, spotId: id, spotX: s.x, spotY: s.y };
+      if (badgesContainer) {
+        renderBuildingBadges(badgesContainer, SPOTS, g.spotId, setSpot);
+      }
+    };
+
+    if (badgesContainer) {
+      renderBuildingBadges(badgesContainer, SPOTS, g.spotId, setSpot);
+    }
+
     // shared bait selection: the 1–5 keys and the panel clicks use this
     const selectBait = (slot: number): void => {
       const b = g.tackle[slot]; if (!b) return;
@@ -57,10 +71,7 @@ async function main(): Promise<void> {
     };
 
     const unbind = bindInput(canvas, {
-      onSpot: (id) => {
-        const s = spotById(id);
-        g = { ...g, spotId: id, spotX: s.x, spotY: s.y };
-      },
+      onSpot: setSpot,
       onHook: () => { g = onHookClick(g, ROUND_MS - g.timeLeftMs); },
       onCast: (x, y) => { g = castLapp(g, x, y); },
       onSelectBait: selectBait,

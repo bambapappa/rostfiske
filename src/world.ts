@@ -6,6 +6,9 @@ export const SPOTS: FishingSpot[] = [
   { id: 'skolan',       name: 'Skolan',        x: 80,  y: 76,  bias: { utbildning: 6 } },
   { id: 'aldreboendet', name: 'Äldreboendet',  x: 430, y: 76,  bias: { välfärd: 6 } },
   { id: 'stationen',    name: 'Stationen',     x: 256, y: 56,  bias: { infrastruktur: 6 } },
+  { id: 'bageriet',     name: 'Bageriet',      x: 140, y: 238, bias: {} },
+  { id: 'biblioteket',  name: 'Biblioteket',   x: 256, y: 248, bias: {} },
+  { id: 'apoteket',     name: 'Apoteket',      x: 392, y: 238, bias: {} },
 ];
 
 export function spotById(id: SpotId): FishingSpot {

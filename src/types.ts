@@ -87,7 +87,14 @@ export interface GameEvent {
   text: string;
 }
 
-export type SpotId = 'torget' | 'skolan' | 'aldreboendet' | 'stationen';
+export type SpotId =
+  | 'torget'
+  | 'skolan'
+  | 'aldreboendet'
+  | 'stationen'
+  | 'bageriet'
+  | 'biblioteket'
+  | 'apoteket';
 
 export interface FishingSpot {
   id: SpotId;
