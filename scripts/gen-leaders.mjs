@@ -1,13 +1,25 @@
-// Generates public/sprites/politicians.png: 8 party-leader caricatures,
-// 16x16 each on a 128x32 sheet. Cell order matches PARTIES order:
+// Generates public/sprites/politicians.png: 8 caricatures of the REAL 2026
+// Swedish party leaders, 16x24 each on a 128x48 sheet (4 cols x 2 rows).
+// Cell order matches PARTIES order:
 //   row 0: s, m, sd, c
 //   row 1: v, kd, l, mp
 //
-// Each leader = base body (suit in party color + skin tone) drawn
-// programmatically, plus a distinguishing-feature overlay (hair style/color,
-// glasses, mustache, beard). Cartoon "liknande" caricatures, deliberately
-// simplified: S dark quiff, M glasses + sideburns, SD blond neat, C mustache
-// + glasses, V long dark hair, KD blond page, L bald + beard, MP auburn.
+// The caricatures are paraphrases — simplified, neutral pixel portraits with
+// a few recognizable descriptors (hair silhouette, hair color, glasses,
+// stubble, skin tone). NOT exact portraits, and never mocking: every leader
+// gets the same dignified base body (suit in party color, white shirt, tie
+// or plain collar) and the same level of detail. Gender and skin tone are
+// factual representation, not exaggeration.
+//
+// Leaders (search-verified 2026-08-15, see spec):
+//   s  Magdalena Andersson   kvinna, mörkbrunt hår i knut
+//   m  Ulf Kristersson       man, glasögon, grånat hår, sidbena
+//   sd Jimmie Åkesson        man, blont välkammat, kostym
+//   c  Elisabeth Thand Ringqvist kvinna, ljust/blond hår
+//   v  Nooshi Dadgostar      kvinna, mörkt hår, brun hy
+//   kd Ebba Busch            kvinna, blont page
+//   l  Johan Pehrson         man, glasögon, grånat/hårbotten, skäggstubb
+//   mp Amanda Lind           kvinna, rödbrunt hår (MP har två språkrör)
 //
 // Suit colors mirror FALLBACK_PARTIES in src/fallback.ts (display-only).
 //
@@ -21,162 +33,199 @@ import { Grid, writePng } from './pnglib.mjs';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = join(__dirname, '..', 'public', 'sprites', 'politicians.png');
 
-const CELL = 16; // sprite size
-const COLS = 8;  // cells per row
+const CELL_W = 16;
+const CELL_H = 24;
+const COLS = 4; // cells per row
 
 const DARK = '#1a1a1a';
 const SHOE = '#26232e';
 const WHITE = '#f2f2f2';
+const STUBBLE = '#8a7466';
 
-// Party order = sheet order. suit colors from FALLBACK_PARTIES.
+// Party order = sheet order. All descriptors are data so the sheet can be
+// audited against the spec table without reading drawing code.
 const LEADERS = [
   {
-    code: 's', suit: '#E8112d', skin: '#e8b08a', hair: '#3a2a1a',
-    feature: 'dark quiff (hårsnibb)',
+    code: 's', name: 'Magdalena Andersson', gender: 'kvinna',
+    suit: '#E8112d', skin: '#ecc19c', hair: '#3a2418',
+    hairStyle: 'bun',
   },
   {
-    code: 'm', suit: '#1B7FC1', skin: '#ecc19c', hair: '#7a6a58',
-    feature: 'glasses + sideburns',
+    code: 'm', name: 'Ulf Kristersson', gender: 'man',
+    suit: '#1B7FC1', skin: '#ecc19c', hair: '#8a7666',
+    hairStyle: 'side-part', glasses: true,
   },
   {
-    code: 'sd', suit: '#4E9E2C', skin: '#e8b08a', hair: '#e3c56b',
-    feature: 'blond neat',
+    code: 'sd', name: 'Jimmie Åkesson', gender: 'man',
+    suit: '#4E9E2C', skin: '#e8b08a', hair: '#e8cf7a',
+    hairStyle: 'neat-combed',
   },
   {
-    code: 'c', suit: '#00965E', skin: '#ecc19c', hair: '#5a4632',
-    feature: 'mustache + glasses',
+    code: 'c', name: 'Elisabeth Thand Ringqvist', gender: 'kvinna',
+    suit: '#00965E', skin: '#ecc19c', hair: '#e6cf8e',
+    hairStyle: 'shoulder-length',
   },
   {
-    code: 'v', suit: '#DA291C', skin: '#d9a066', hair: '#20150f',
-    feature: 'long dark hair',
+    code: 'v', name: 'Nooshi Dadgostar', gender: 'kvinna',
+    suit: '#DA291C', skin: '#b07a52', hair: '#1f1410',
+    hairStyle: 'long',
   },
   {
-    code: 'kd', suit: '#231977', skin: '#ecc19c', hair: '#d9b44a',
-    feature: 'blond page',
+    code: 'kd', name: 'Ebba Busch', gender: 'kvinna',
+    suit: '#231977', skin: '#ecc19c', hair: '#ecd27a',
+    hairStyle: 'page',
   },
   {
-    code: 'l', suit: '#006AB3', skin: '#e8b08a', hair: '#8a7a6a',
-    feature: 'bald + beard',
+    code: 'l', name: 'Johan Pehrson', gender: 'man',
+    suit: '#006AB3', skin: '#e8b08a', hair: '#9a8f82',
+    hairStyle: 'receding', glasses: true, stubble: true,
   },
   {
-    code: 'mp', suit: '#83CF39', skin: '#ecc19c', hair: '#9a4f2b',
-    feature: 'auburn',
+    code: 'mp', name: 'Amanda Lind', gender: 'kvinna',
+    suit: '#83CF39', skin: '#ecc19c', hair: '#a14e26',
+    hairStyle: 'wavy-long',
   },
 ];
 
-// Head occupies x5..10, y3..8. Torso y10..13, legs y14, shoes y15.
-function drawBaseBody(g, { suit, skin }) {
+// Shared base body. Same dignified construction for everyone (neutrality):
+// head x5..10 y4..10, neck y11, suit torso y12..17, arms, white shirt
+// (men get a tie, women a plain collar), legs y18..21, shoes y22..23.
+// Feet land on the cell's bottom row (y23) so render can anchor at spotY.
+function drawBaseBody(g, { suit, skin, gender }) {
   // head + neck
-  g.rect(5, 3, 6, 6, skin);
-  g.rect(7, 9, 2, 1, skin);
+  g.rect(5, 4, 6, 7, skin);
+  g.rect(7, 11, 2, 1, skin);
   // eyes
-  g.px(6, 5, DARK);
-  g.px(9, 5, DARK);
+  g.px(6, 7, DARK);
+  g.px(9, 7, DARK);
   // suit: shoulders (wider row), torso, arms
-  g.rect(3, 10, 10, 1, suit);
-  g.rect(4, 11, 8, 3, suit);
-  g.rect(3, 11, 1, 3, suit);
-  g.rect(12, 11, 1, 3, suit);
-  // shirt + tie
-  g.rect(7, 10, 2, 3, WHITE);
-  g.px(7, 11, DARK);
-  g.px(8, 11, DARK);
-  g.px(7, 12, DARK);
+  g.rect(3, 12, 10, 1, suit);
+  g.rect(4, 13, 8, 5, suit);
+  g.rect(3, 13, 1, 4, suit);
+  g.rect(12, 13, 1, 4, suit);
+  // shirt collar / tie
+  g.rect(7, 12, 2, 5, WHITE);
+  if (gender === 'man') {
+    g.px(7, 13, DARK);
+    g.px(8, 13, DARK);
+    g.px(7, 14, DARK);
+    g.px(8, 14, DARK);
+    g.px(7, 15, DARK);
+  }
   // hands, legs, shoes
-  g.px(3, 14, skin);
-  g.px(12, 14, skin);
-  g.rect(5, 14, 2, 1, DARK);
-  g.rect(9, 14, 2, 1, DARK);
-  g.rect(4, 15, 3, 1, SHOE);
-  g.rect(9, 15, 3, 1, SHOE);
+  g.px(3, 17, skin);
+  g.px(12, 17, skin);
+  g.rect(5, 18, 2, 4, DARK);
+  g.rect(9, 18, 2, 4, DARK);
+  g.rect(4, 22, 3, 2, SHOE);
+  g.rect(9, 22, 3, 2, SHOE);
 }
 
-// Distinguishing-feature overlays, drawn after the base body.
-const FEATURES = {
-  s(g, { hair }) {
-    // dark hair cap + upward quiff/snibb at the front
-    g.rect(5, 2, 6, 1, hair);
-    g.rect(4, 3, 1, 2, hair);
-    g.rect(11, 3, 1, 2, hair);
-    g.rect(9, 1, 2, 1, hair); // snibben
-  },
-  m(g, { hair }) {
-    // hair + sideburns down the sides of the face + glasses
-    g.rect(5, 2, 6, 1, hair);
-    g.rect(4, 3, 1, 4, hair); // sideburn
-    g.rect(11, 3, 1, 4, hair);
-    glasses(g);
-  },
-  sd(g, { hair }) {
-    // neat blond hairline
-    g.rect(5, 2, 6, 1, hair);
-    g.rect(4, 3, 2, 1, hair);
-    g.rect(10, 3, 2, 1, hair);
-    g.px(4, 4, hair);
+// Hair silhouettes — each leader gets a distinct outline so the 8 cells read
+// differently at a glance. All drawn after (over) the base body.
+const HAIR = {
+  // mörkbrunt hår samlat i knut: sleek cap + bun bump on top of the head
+  bun(g, { hair }) {
+    g.rect(6, 1, 4, 1, hair); // knuten
+    g.rect(5, 2, 6, 2, hair); // sleek cap
+    g.px(4, 4, hair);         // pulled-back sides
     g.px(11, 4, hair);
   },
-  c(g, { hair }) {
-    // brown hair + mustache + glasses
-    g.rect(5, 2, 6, 1, hair);
-    g.rect(4, 3, 1, 2, hair);
-    g.rect(11, 3, 1, 2, hair);
-    g.rect(6, 6, 4, 1, hair); // mustache
-    glasses(g);
+  // grånat/ljusbrunt hår med sidbena: asymmetrisk hårfäste, korta tinningar
+  sidePart(g, { hair }) {
+    g.rect(5, 2, 6, 2, hair);
+    g.rect(5, 3, 2, 1, hair); // benan: mer hår på vänster sida
+    g.px(4, 4, hair);
+    g.px(11, 4, hair);
+    g.px(4, 5, hair);
   },
-  v(g, { hair }) {
-    // long dark hair down past the shoulders
-    g.rect(5, 2, 6, 1, hair);
-    g.rect(4, 3, 1, 8, hair);
+  // blont välkammat: rak hårlinje + prydliga sideburns
+  neatCombed(g, { hair }) {
+    g.rect(5, 2, 6, 2, hair);
+    g.rect(4, 3, 2, 1, hair);
+    g.rect(10, 3, 2, 1, hair);
+    g.rect(4, 4, 1, 2, hair); // sideburns
+    g.rect(11, 4, 1, 2, hair);
+  },
+  // ljust/blondt axellångt hår
+  shoulderLength(g, { hair }) {
+    g.rect(5, 2, 6, 2, hair);
+    g.rect(4, 3, 1, 9, hair); // ner till axlarna (y11)
+    g.rect(11, 3, 1, 9, hair);
+  },
+  // mörkt, längst av alla: förbi axlarna (y14)
+  long(g, { hair }) {
+    g.rect(5, 2, 6, 2, hair);
+    g.rect(4, 3, 1, 12, hair);
+    g.rect(11, 3, 1, 12, hair);
+  },
+  // blont page: rak lugg + slutna sidor ner till käken
+  page(g, { hair }) {
+    g.rect(5, 2, 6, 2, hair);
+    g.rect(5, 4, 6, 1, hair); // lugg over the forehead
+    g.rect(4, 3, 1, 8, hair); // sidor till käklinjen (y10)
     g.rect(11, 3, 1, 8, hair);
   },
-  kd(g, { hair }) {
-    // blond page/bob: cap + straight fringe + sides to the jaw
-    g.rect(5, 2, 6, 1, hair);
-    g.rect(4, 3, 8, 1, hair); // fringe covers the forehead
-    g.rect(4, 4, 1, 4, hair);
-    g.rect(11, 4, 1, 4, hair);
+  // grånat, hög hårfäste/återgående tinningar
+  receding(g, { hair }) {
+    g.rect(5, 2, 6, 1, hair); // tunn kalott
+    g.px(4, 3, hair);         // tinningar
+    g.px(11, 3, hair);
   },
-  l(g, { hair }) {
-    // bald crown + full beard around the chin/jaw
-    g.rect(5, 7, 6, 1, hair); // beard along the chin
-    g.px(4, 6, hair);
-    g.px(11, 6, hair);
-    g.px(4, 7, hair);
-    g.px(11, 7, hair);
-    g.px(5, 8, hair); // beard corners on the chin row
-    g.px(10, 8, hair);
-  },
-  mp(g, { hair }) {
-    // auburn hair, slightly wavy sides
-    g.rect(5, 2, 6, 1, hair);
-    g.rect(4, 3, 1, 3, hair);
-    g.rect(11, 3, 1, 3, hair);
-    g.px(4, 6, hair);
-    g.px(11, 6, hair);
+  // rödbrunt, axellångt med utåtgående våg
+  wavyLong(g, { hair }) {
+    g.rect(5, 2, 6, 2, hair);
+    g.rect(4, 3, 1, 11, hair); // ner till y13
+    g.rect(11, 3, 1, 11, hair);
+    g.px(3, 11, hair);         // vågen svänger ut
+    g.px(3, 12, hair);
+    g.px(12, 11, hair);
+    g.px(12, 12, hair);
   },
 };
 
-// Round glasses: frames outside each eye + bridge over the nose.
-// Eyes (drawn by the base body) remain visible inside the lenses.
+const HAIR_FN = {
+  'bun': HAIR.bun,
+  'side-part': HAIR.sidePart,
+  'neat-combed': HAIR.neatCombed,
+  'shoulder-length': HAIR.shoulderLength,
+  'long': HAIR.long,
+  'page': HAIR.page,
+  'receding': HAIR.receding,
+  'wavy-long': HAIR.wavyLong,
+};
+
+// Glasses: frame pixels outside each eye + a 2px bridge between them.
+// Eyes (from the base body) stay visible inside the lenses.
 function glasses(g) {
-  g.px(5, 5, DARK);
-  g.px(10, 5, DARK);
-  g.px(7, 5, DARK); // bridge
+  g.px(5, 7, DARK);
+  g.px(7, 7, DARK);
+  g.px(8, 7, DARK);
+  g.px(10, 7, DARK);
 }
 
-const sheet = new Grid(CELL * COLS, CELL * 2);
+// Skäggstubb: a subdued stubble band along the jaw/chin.
+function stubble(g) {
+  g.rect(5, 10, 6, 1, STUBBLE);
+  g.px(4, 9, STUBBLE);
+  g.px(11, 9, STUBBLE);
+}
+
+const sheet = new Grid(CELL_W * COLS, CELL_H * 2);
 
 LEADERS.forEach((leader, i) => {
-  const cx = (i % COLS) * CELL;
-  const cy = Math.floor(i / COLS) * CELL;
+  const cx = (i % COLS) * CELL_W;
+  const cy = Math.floor(i / COLS) * CELL_H;
   // Draw into a cell-local grid, then blit it onto the sheet so the
   // feature functions can use cell coordinates.
-  const cell = new Grid(CELL, CELL);
+  const cell = new Grid(CELL_W, CELL_H);
   drawBaseBody(cell, leader);
-  FEATURES[leader.code](cell, leader);
-  for (let y = 0; y < CELL; y++) {
-    for (let x = 0; x < CELL; x++) {
-      const idx = (y * CELL + x) * 4;
+  HAIR_FN[leader.hairStyle](cell, leader);
+  if (leader.glasses) glasses(cell);
+  if (leader.stubble) stubble(cell);
+  for (let y = 0; y < CELL_H; y++) {
+    for (let x = 0; x < CELL_W; x++) {
+      const idx = (y * CELL_W + x) * 4;
       if (cell.data[idx + 3] !== 0) {
         sheet.px(cx + x, cy + y, [
           cell.data[idx], cell.data[idx + 1], cell.data[idx + 2], cell.data[idx + 3],

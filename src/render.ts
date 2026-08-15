@@ -1,4 +1,4 @@
-import { LOGICAL_W, LOGICAL_H, TOWN_COLS, TOWN_ROWS, ROUND_MS, HOOK_WINDOW_MS, PARTIES, CAST_RADIUS } from './constants';
+import { LOGICAL_W, LOGICAL_H, TOWN_COLS, TOWN_ROWS, ROUND_MS, HOOK_WINDOW_MS, PARTIES, CAST_RADIUS, LEADER_W, LEADER_H } from './constants';
 import { SPOTS } from './world';
 import { activeBait } from './bait';
 import type { GameState } from './engine';
@@ -189,11 +189,12 @@ export function drawScene(ctx: CanvasRenderingContext2D, state: GameState, sprit
     ctx.fillRect(bx - 8, by - 13, Math.round(frac * 16), 2);
   }
 
-  // --- politician (caricature cell per party index; shoes at cell y15) ---
+  // --- politician (16x24 caricature cell per party index, 4x2 sheet;
+  //     feet on the cell's bottom row → anchor so shoes land at spotY) ---
   const pol = sprites.get('politicians');
   const pIdx = PARTIES.indexOf(state.party);
   if (pol && pIdx >= 0) {
-    ctx.drawImage(pol, (pIdx % 4) * 16, Math.floor(pIdx / 4) * 16, 16, 16, Math.round(state.spotX) - 8, Math.round(state.spotY) - 15, 16, 16);
+    ctx.drawImage(pol, (pIdx % 4) * LEADER_W, Math.floor(pIdx / 4) * LEADER_H, LEADER_W, LEADER_H, Math.round(state.spotX) - LEADER_W / 2, Math.round(state.spotY) - (LEADER_H - 1), LEADER_W, LEADER_H);
   } else {
     ctx.fillStyle = pcol;
     ctx.fillRect(state.spotX - 3, state.spotY - 12, 6, 12);

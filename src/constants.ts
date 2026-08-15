@@ -39,6 +39,8 @@ export const ENTER_PROB_PER_SEC = 0.15;
 
 // Rendering
 export const TILE = 16;
+export const LEADER_W = 16; // politician caricature cell in politicians.png
+export const LEADER_H = 24; // feet on the cell's bottom row (y23)
 export const LOGICAL_W = 384;
 export const LOGICAL_H = 208; // 16 px tiles → integer grid 24×13
 export const TOWN_COLS = 24;

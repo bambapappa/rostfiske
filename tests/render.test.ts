@@ -126,8 +126,9 @@ describe('drawScene', () => {
     const sheet = new Map([['politicians', {} as unknown as HTMLImageElement]]);
     const { ctx, draws } = stubCtx();
     drawScene(ctx, g, sheet, parties, 0);
-    // mp = index 7 in PARTIES → row 1 (sy=16), col 3 (sx=48) of politicians.png
-    expect(draws.some((d) => d.sx === 48 && d.sy === 16)).toBe(true);
+    // mp = index 7 in PARTIES → 16x24 cells, row 1 (sy=24), col 3 (sx=48);
+    // feet anchored at spotY → dy = spotY - 23
+    expect(draws.some((d) => d.sx === 48 && d.sy === 24 && d.dw === 16 && d.dh === 24)).toBe(true);
   });
 
   it('draws a dashed ring around the politician (v1.2 cast radius)', () => {

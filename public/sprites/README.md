@@ -9,13 +9,27 @@ All art is CC0 (public domain). Sources and licenses:
   file `Tilemap/tilemap_packed.png`).
   License: **Creative Commons Zero (CC0)** — see bundled License.txt in the
   Kenney pack. Crediting Kenney is appreciated but not mandatory.
-- `politicians.png` — custom-generated party-leader caricatures (CC0).
-  128x32 px, 8 sprites of 16x16, one per party in `PARTIES` order:
-  row 0: s, m, sd, c; row 1: v, kd, l, mp.
-  Each is a base body (suit in party color, from `FALLBACK_PARTIES`) plus a
-  distinguishing feature: S dark quiff, M glasses + sideburns, SD blond neat,
-  C mustache + glasses, V long dark hair, KD blond page, L bald + beard,
-  MP auburn. Cartoon "liknande" caricatures — simplified, not real portraits.
+- `politicians.png` — custom-generated caricatures of the 2026 party
+  leaders (CC0). 64x48 px, 8 sprites of 16x24 in a 4x2 grid, one per party
+  in `PARTIES` order: row 0: s, m, sd, c; row 1: v, kd, l, mp.
+  Leaders (search-verified 2026-08-15):
+  | Cell | Parti | Ledare | Kännetecken i spriten |
+  |---|---|---|---|
+  | 0 | s | Magdalena Andersson | kvinna, mörkbrunt hår i knut |
+  | 1 | m | Ulf Kristersson | man, glasögon, grånat hår, sidbena |
+  | 2 | sd | Jimmie Åkesson | man, blont välkammat, kostym |
+  | 3 | c | Elisabeth Thand Ringqvist | kvinna, ljust/blondt axellångt hår |
+  | 4 | v | Nooshi Dadgostar | kvinna, mörkt långt hår, brun hy |
+  | 5 | kd | Ebba Busch | kvinna, blont page |
+  | 6 | l | Johan Pehrson | man, glasögon, hög hårfäste, skäggstubb |
+  | 7 | mp | Amanda Lind | kvinna, rödbrunt vågigt hår |
+  Note: MP has two språkrör (Amanda Lind and Janine Alm Ericson) — the game
+  uses one avatar per party and picked Amanda Lind.
+  The caricatures are **paraphrases**, not exact portraits: simplified,
+  neutral pixel art where glasses/hair/stubble are recognition descriptors,
+  never mockery. Every leader gets the same dignified base body (suit in
+  party color from `FALLBACK_PARTIES`, white shirt) and the same level of
+  detail. Gender and skin tones are factual representation.
 - `voters.png` — custom-generated mixed voters (CC0).
   128x32 px, 16 sprites of 16x16:
   row 0 cells 0-7: adults (trousers and skirt bodies) x 4 palettes;
