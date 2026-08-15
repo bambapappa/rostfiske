@@ -66,6 +66,14 @@ export interface Building {
   bias: Partial<Record<Category, number>>; // category weight boost when exiting
 }
 
+/** Axis-aligned rectangle in logical px (x,y = top-left corner). */
+export interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 export type GameEventKind =
   | 'cast' | 'napp' | 'catch' | 'release' | 'miss' | 'baitWorn' | 'baitSelected';
 

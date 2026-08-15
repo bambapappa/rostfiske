@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SPOTS, spotById, BUILDINGS, buildingById } from '../src/world';
+import { SPOTS, spotById, BUILDINGS, buildingById, buildingRects, buildingRect, isDoorZone, pushOut, BUILDING_W, BUILDING_H } from '../src/world';
 import { LOGICAL_W, LOGICAL_H } from '../src/constants';
 
 describe('city spots', () => {
@@ -73,5 +73,51 @@ describe('buildings', () => {
         }
       }
     }
+  });
+});
+
+describe('building footprints (v1.2)', () => {
+  it('buildingRects returns 6 rects of 48×32 centered on each building', () => {
+    const rects = buildingRects();
+    expect(rects).toHaveLength(6);
+    for (let i = 0; i < BUILDINGS.length; i++) {
+      const b = BUILDINGS[i]!;
+      const r = rects[i]!;
+      expect(r.w).toBe(48);
+      expect(r.h).toBe(32);
+      expect(r.x).toBe(b.x - BUILDING_W / 2);
+      expect(r.y).toBe(b.y - BUILDING_H / 2);
+    }
+  });
+  it('buildingRect centers on a single building', () => {
+    const r = buildingRect(buildingById('hus1'));
+    expect(r).toEqual({ x: 96, y: 134, w: 48, h: 32 });
+  });
+  it('the building center lies strictly inside its rect; edges do not', () => {
+    const r = buildingRect(buildingById('skolan'))!; // 32..80 x, 24..56 y
+    const inside = (x: number, y: number): boolean =>
+      x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h;
+    expect(inside(56, 40)).toBe(true); // center
+    expect(inside(32, 40)).toBe(false); // left edge
+    expect(inside(80, 40)).toBe(false); // right edge
+  });
+  it('isDoorZone: the door point is a zone, points beyond r are not', () => {
+    const b = buildingById('hus1'); // door at (120,164)
+    expect(isDoorZone(120, 164, b)).toBe(true);
+    expect(isDoorZone(125, 164, b)).toBe(true); // within default r=10
+    expect(isDoorZone(131, 164, b)).toBe(false); // beyond r=10
+    expect(isDoorZone(120, 164, b, 20)).toBe(true); // custom radius
+  });
+  it('pushOut moves an interior point to the nearest edge, leaves outside points alone', () => {
+    const rects = buildingRects();
+    const hus2 = buildingRect(buildingById('hus2')); // 240..288 x, 134..166 y
+    const out = pushOut(264, 140, rects); // 6px from top edge
+    expect(out.x).toBe(264);
+    expect(out.y).toBe(134);
+    const far = pushOut(10, 190, rects);
+    expect(far).toEqual({ x: 10, y: 190 });
+    const inHus2 = (x: number, y: number): boolean =>
+      x > hus2.x && x < hus2.x + hus2.w && y > hus2.y && y < hus2.y + hus2.h;
+    expect(inHus2(out.x, out.y)).toBe(false);
   });
 });

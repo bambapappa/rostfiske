@@ -3,6 +3,7 @@ import {
   CATEGORIES, MINOR_PROBABILITY, LOGICAL_W, LOGICAL_H, VOTER_VARIANTS,
   ENTER_PROB_PER_SEC, INSIDE_MIN_MS, INSIDE_MAX_MS, type Category,
 } from './constants';
+import { buildingRect, pointInRect, isDoorZone } from './world';
 import type { Voter, VoterAge, VoterState, FishingSpot, Building } from './types';
 
 export function rollAge(rng: Rng): VoterAge {
@@ -40,6 +41,24 @@ export function spawnVoter(rng: Rng, id: number, spot: FishingSpot, bias: Partia
 
 function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v));
+}
+
+/** Proposed move (v1.2): if (nx,ny) lands inside a building footprint — and not
+ *  within that building's door zone — the move is refused: the voter keeps its
+ *  old position and `blocked` is true. Otherwise the new position is returned
+ *  with `blocked: false`. Pure. */
+export function blockedMove(
+  v: Voter,
+  nx: number,
+  ny: number,
+  buildings: Building[],
+): { x: number; y: number; blocked: boolean } {
+  for (const b of buildings) {
+    if (!pointInRect(nx, ny, buildingRect(b))) continue; // not in this footprint
+    if (isDoorZone(nx, ny, b)) continue; // door exception for this building
+    return { x: v.x, y: v.y, blocked: true };
+  }
+  return { x: nx, y: ny, blocked: false };
 }
 
 /** A wander-state voter at the door may enter; probability ENTER_PROB_PER_SEC * dtSec. Pure. */

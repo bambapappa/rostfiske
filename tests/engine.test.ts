@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createGame, step, onHookClick, castLapp, type GameState } from '../src/engine';
 import { ROUND_MS, MAX_VOTERS, TACKLE_SIZE, LOGICAL_W, LOGICAL_H, CATEGORIES, CAST_RADIUS } from '../src/constants';
 import { activeBait } from '../src/bait';
-import { buildingById } from '../src/world';
+import { buildingById, buildingRects } from '../src/world';
 import type { PromiseData, Voter } from '../src/types';
 
 const pp = (cat: any): PromiseData => ({ id: 'p-'+cat, title: cat, quote: 'q', party: 's', category: cat, msekBase: 1, status: 'aktiv', source: { url: 'u', domain: 'd' } });
@@ -154,7 +154,9 @@ describe('one biter at a time', () => {
 
 describe('recast while voters are en route', () => {
   it('re-aims en-route voters at the live lapp instead of stranding them', () => {
-    const g = mk(7);
+    // v1.2: blocked wanderers now draw a new heading from the shared rng, which
+    // shifts the seeded stream — seed 8 keeps this scenario deterministic
+    const g = mk(8);
     const bait = activeBait(g.tackle)!;
     const g1: GameState = {
       ...g,
@@ -436,5 +438,36 @@ describe('time + game over', () => {
     const s = step(g, ROUND_MS + 1);
     expect(s.phase).toBe('game_over');
     expect(s.timeLeftMs).toBe(0);
+  });
+});
+
+describe('building collision (v1.2)', () => {
+  it('a wanderer stepping into a footprint keeps its position that frame, stays wander and re-chooses heading', () => {
+    const g = mk();
+    // stationen footprint: 168..216 x, 8..40 y; door (192,40).
+    // Voter just below its right part, heading up: one second of VOTER_SPEED (18px)
+    // lands at (214,38) — interior, 22px from the door (outside door zone
+    // r=10 and outside the 24px tryEnter proximity).
+    const s = step({ ...g, voters: [voter({ id: 1, x: 214, y: 56, vx: 0, vy: -1 })] }, 1000);
+    const v = s.voters.find((x) => x.id === 1)!;
+    expect(v.state).toBe('wander');
+    expect(v.x).toBe(214);
+    expect(v.y).toBe(56);
+    expect(v.vx === 0 && v.vy === -1).toBe(false); // new random heading chosen
+  });
+
+  it('castLapp aimed inside a footprint lands outside the rect', () => {
+    const g = mk();
+    // politician at torget (192,104); hus2 footprint 240..288 x, 134..166 y.
+    // (264,140) is ~78px away (within CAST_RADIUS) and interior to hus2.
+    const s = castLapp(g, 264, 140);
+    expect(s.lapp).toBeDefined();
+    for (const r of buildingRects()) {
+      const inside = s.lapp!.x > r.x && s.lapp!.x < r.x + r.w && s.lapp!.y > r.y && s.lapp!.y < r.y + r.h;
+      expect(inside).toBe(false);
+    }
+    // pushed to the nearest edge (top, 6px away): same x, y clamped to 134
+    expect(s.lapp!.x).toBeCloseTo(264, 0);
+    expect(s.lapp!.y).toBe(134);
   });
 });

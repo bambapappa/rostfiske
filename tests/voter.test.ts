@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { makeRng } from '../src/rng';
-import { rollAge, chooseCategory, matches, spawnVoter, tryEnter, tryExit, spawnAtBuilding } from '../src/voter';
+import { rollAge, chooseCategory, matches, spawnVoter, tryEnter, tryExit, spawnAtBuilding, blockedMove } from '../src/voter';
+import { BUILDINGS, buildingById } from '../src/world';
 import {
   MINOR_PROBABILITY, LOGICAL_W, LOGICAL_H,
   ENTER_PROB_PER_SEC, INSIDE_MIN_MS, INSIDE_MAX_MS, VOTER_VARIANTS,
@@ -192,5 +193,35 @@ describe('spawnAtBuilding', () => {
     for (let i = 0; i < 1000; i++) if (spawnAtBuilding(r, i, skolan, 0).age === 'minor') minors++;
     expect(minors).toBeGreaterThan(50); // ~150 expected (p=0.15)
     expect(minors).toBeLessThan(250);
+  });
+});
+
+describe('blockedMove (v1.2)', () => {
+  const skolan = buildingById('skolan'); // rect 32..80 x, 24..56 y; door (56,56)
+  const base: Voter = { id: 1, x: 200, y: 120, vx: 1, vy: 0, category: 'välfärd', age: 'adult', state: 'wander', variant: 0 };
+
+  it('returns the new position, blocked=false, when the target is free', () => {
+    const r = blockedMove(base, 205, 120, BUILDINGS);
+    expect(r).toEqual({ x: 205, y: 120, blocked: false });
+  });
+
+  it('blocks a step into a footprint: keeps the old position and flags blocked', () => {
+    const v: Voter = { ...base, x: 34, y: 60 };
+    const r = blockedMove(v, 34, 42, BUILDINGS); // (34,42) inside skolan rect, 26px from door
+    expect(r).toEqual({ x: 34, y: 60, blocked: true });
+  });
+
+  it('allows a step onto the door point (door zone)', () => {
+    const v: Voter = { ...base, x: 56, y: 60 };
+    const r = blockedMove(v, 56, 56, BUILDINGS); // exact door coordinate
+    expect(r).toEqual({ x: 56, y: 56, blocked: false });
+  });
+
+  it('allows a step near the door within the door radius', () => {
+    const v: Voter = { ...base, x: 50, y: 62 };
+    const r = blockedMove(v, 52, 58, BUILDINGS); // inside rect, ~4.5px from door
+    expect(r.blocked).toBe(false);
+    expect(r.x).toBe(52);
+    expect(r.y).toBe(58);
   });
 });

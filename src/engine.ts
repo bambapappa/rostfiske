@@ -1,9 +1,9 @@
 import { makeRng, type Rng } from './rng';
 import { ROUND_MS, MAX_VOTERS, TACKLE_SIZE, VOTER_SPEED, LOGICAL_W, LOGICAL_H, CAST_RADIUS, type PartyCode } from './constants';
 import { buildTackle, activeBait, baitById, wearBait } from './bait';
-import { tryEnter, tryExit, spawnAtBuilding } from './voter';
+import { tryEnter, tryExit, spawnAtBuilding, blockedMove } from './voter';
 import { beginBite, hookSucceeds, bittenVoterEscapes, resolveCatch, resolveMiss, moveAttracted, noticeLapp, reachedLapp } from './fishing';
-import { spotById, BUILDINGS, buildingById } from './world';
+import { spotById, BUILDINGS, buildingById, buildingRects, pushOut } from './world';
 import type { PromiseData, Bait, Voter, GamePhase, SpotId, Lapp, GameEvent } from './types';
 import { catchLine } from './ui';
 
@@ -76,6 +76,12 @@ export function castLapp(state: GameState, x: number, y: number): GameState {
   // Existing screen clamp
   cx = Math.max(0, Math.min(LOGICAL_W, cx));
   cy = Math.max(0, Math.min(LOGICAL_H, cy));
+
+  // v1.2: a lapp cannot land inside a building footprint — push it out to the
+  // nearest rect edge
+  const pushed = pushOut(cx, cy, buildingRects());
+  cx = pushed.x;
+  cy = pushed.y;
 
   return {
     ...state,
@@ -150,9 +156,17 @@ export function step(state: GameState, dtMs: number): GameState {
     }
     const nx = v.x + (v.vx * VOTER_SPEED * dtMs) / 1000;
     const ny = v.y + (v.vy * VOTER_SPEED * dtMs) / 1000;
-    if (nx < 0 || nx > LOGICAL_W) return { ...v, vx: -v.vx };
-    if (ny < 0 || ny > LOGICAL_H) return { ...v, vy: -v.vy };
-    return { ...v, x: nx, y: ny };
+    // v1.2: building footprints block movement (door zones excepted) —
+    // a blocked step keeps the position and re-chooses a random heading.
+    // Task 3 replaces this with natural turning; here it just avoids walking through houses.
+    const move = blockedMove(v, nx, ny, BUILDINGS);
+    if (move.blocked) {
+      const ang = rng.next() * Math.PI * 2;
+      return { ...v, vx: Math.cos(ang), vy: Math.sin(ang) };
+    }
+    if (move.x < 0 || move.x > LOGICAL_W) return { ...v, vx: -v.vx };
+    if (move.y < 0 || move.y > LOGICAL_H) return { ...v, vy: -v.vy };
+    return { ...v, x: move.x, y: move.y };
   });
 
   let tackle = state.tackle;
