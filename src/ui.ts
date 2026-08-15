@@ -1,5 +1,5 @@
 import type { GameState } from './engine';
-import { PARTIES, LEADER_W, LEADER_H, LOGICAL_W, LOGICAL_H, type Category, type PartyCode } from './constants';
+import { PARTIES, LEADER_W, LEADER_H, LOGICAL_W, LOGICAL_H, DEFAULT_PARTIES, type Category, type PartyCode } from './constants';
 import type { GameEvent, PartyData, Bait } from './types';
 import { calculateMandates, calculateIssueBreakdown } from './highscore';
 
@@ -213,17 +213,7 @@ export function showGameOverModal(
     ? { s: 0, m: 0, sd: 0, c: 0, v: 0, kd: 0, l: 0, mp: 0, [state.party]: partyScoresOrBest }
     : partyScoresOrBest;
 
-  const defaultParties: PartyData[] = [
-    { code: 's', name: 'Socialdemokraterna', color: '#e8112d', colorText: '#fff', block: 'rödgrön' },
-    { code: 'm', name: 'Moderaterna', color: '#005ea1', colorText: '#fff', block: 'borgerlig' },
-    { code: 'sd', name: 'Sverigedemokraterna', color: '#ddab00', colorText: '#fff', block: 'sd' },
-    { code: 'c', name: 'Centerpartiet', color: '#009933', colorText: '#fff', block: 'borgerlig' },
-    { code: 'v', name: 'Vänsterpartiet', color: '#da291c', colorText: '#fff', block: 'rödgrön' },
-    { code: 'kd', name: 'Kristdemokraterna', color: '#005ea8', colorText: '#fff', block: 'borgerlig' },
-    { code: 'l', name: 'Liberalerna', color: '#006ab3', colorText: '#fff', block: 'borgerlig' },
-    { code: 'mp', name: 'Miljöpartiet', color: '#83cf39', colorText: '#fff', block: 'rödgrön' },
-  ];
-  const partyList = parties && parties.length > 0 ? parties : defaultParties;
+  const partyList = parties && parties.length > 0 ? parties : (DEFAULT_PARTIES as PartyData[]);
   const currentParty = partyList.find((p) => p.code === state.party) ?? {
     code: state.party,
     name: state.party.toUpperCase(),

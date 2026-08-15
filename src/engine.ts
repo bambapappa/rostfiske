@@ -1,8 +1,8 @@
 import { makeRng, type Rng } from './rng';
 import {
   ROUND_MS, MAX_VOTERS, TACKLE_SIZE, CAST_RADIUS, LOGICAL_W, LOGICAL_H,
-  TREND_1_START_MS, TREND_2_START_MS, TREND_DURATION_MS, TREND_ATTRACT_BOOST, TREND_HEADLINES,
-  type PartyCode, type Category,
+  TREND_1_START_MS, TREND_2_START_MS, TREND_DURATION_MS, TREND_ATTRACT_BOOST, TREND_SPEED_BOOST, TREND_HEADLINES,
+  PARTY_COLORS, type PartyCode, type Category,
 } from './constants';
 import { buildTackle, activeBait, baitById, wearBait } from './bait';
 import { tryEnter, tryExit, spawnAtBuilding, wanderStep } from './voter';
@@ -11,16 +11,7 @@ import { spotById, BUILDINGS, buildingById, buildingRects, pushOut } from './wor
 import type { PromiseData, Bait, Voter, GamePhase, SpotId, Lapp, GameEvent, Particle, ActiveTrend, CaughtVote } from './types';
 import { catchLine, CATEGORY_COLORS } from './ui';
 
-export const PARTY_COLORS: Record<PartyCode, string> = {
-  s: '#e8112d',
-  m: '#005ea1',
-  sd: '#ddab00',
-  c: '#009933',
-  v: '#da291c',
-  kd: '#005ea8',
-  l: '#006ab3',
-  mp: '#83cf39',
-};
+export { PARTY_COLORS };
 
 export interface GameState {
   phase: GamePhase;
@@ -273,7 +264,10 @@ export function step(state: GameState, dtMs: number): GameState {
       }
       // re-aim at the live lapp every step: a recast elsewhere must re-route
       // en-route voters instead of stranding them at stale coordinates
-      const moved = moveAttracted({ ...v, attractToX: lapp.x, attractToY: lapp.y }, dtMs);
+      const lappBait = baitById(state.tackle, lapp.baitId);
+      const isTrendMatch = currentActiveTrend !== null && lappBait !== undefined && currentActiveTrend.category === lappBait.category;
+      const speedMult = isTrendMatch ? TREND_SPEED_BOOST : 1;
+      const moved = moveAttracted({ ...v, attractToX: lapp.x, attractToY: lapp.y }, dtMs, speedMult);
       if (reachedLapp(moved, lapp) && bitingVoterId === null) {
         const biter = beginBite(moved, elapsed);
         bitingVoterId = biter.id;

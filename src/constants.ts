@@ -31,6 +31,29 @@ export const TREND_1_START_MS = 20_000; // Trigger at 40s remaining in 60s round
 export const TREND_2_START_MS = 40_000; // Trigger at 20s remaining in 60s round (elapsed = 40s)
 export const TREND_DURATION_MS = 12_000; // 12-second duration
 export const TREND_ATTRACT_BOOST = 2.5; // 2.5x attraction multiplier for matching voters
+export const TREND_SPEED_BOOST = 1.3; // 30% faster walking toward trending bait
+
+export const PARTY_COLORS: Record<PartyCode, string> = {
+  s: '#e8112d',
+  m: '#005ea1',
+  sd: '#ddab00',
+  c: '#009933',
+  v: '#da291c',
+  kd: '#005ea8',
+  l: '#006ab3',
+  mp: '#83cf39',
+};
+
+export const DEFAULT_PARTIES = [
+  { code: 's' as const, name: 'Socialdemokraterna', color: '#e8112d', colorText: '#fff', block: 'rödgrön' },
+  { code: 'm' as const, name: 'Moderaterna', color: '#005ea1', colorText: '#fff', block: 'borgerlig' },
+  { code: 'sd' as const, name: 'Sverigedemokraterna', color: '#ddab00', colorText: '#fff', block: 'sd' },
+  { code: 'c' as const, name: 'Centerpartiet', color: '#009933', colorText: '#fff', block: 'borgerlig' },
+  { code: 'v' as const, name: 'Vänsterpartiet', color: '#da291c', colorText: '#fff', block: 'rödgrön' },
+  { code: 'kd' as const, name: 'Kristdemokraterna', color: '#005ea8', colorText: '#fff', block: 'borgerlig' },
+  { code: 'l' as const, name: 'Liberalerna', color: '#006ab3', colorText: '#fff', block: 'borgerlig' },
+  { code: 'mp' as const, name: 'Miljöpartiet', color: '#83cf39', colorText: '#fff', block: 'rödgrön' },
+];
 
 export const TREND_HEADLINES: Record<Category, string> = {
   'utbildning': 'EXTRA: Partiledardebatt om skolan och utbildning!',

@@ -20,11 +20,11 @@ export function resolveCatch(v: Voter): { votes: number; released: boolean } {
   return v.age === 'minor' ? { votes: 0, released: true } : { votes: 1, released: false };
 }
 
-export function moveAttracted(v: Voter, dtMs: number): Voter {
+export function moveAttracted(v: Voter, dtMs: number, speedMultiplier: number = 1): Voter {
   if (typeof v.attractToX !== 'number' || typeof v.attractToY !== 'number') return v;
   const dx = v.attractToX - v.x, dy = v.attractToY - v.y;
   const dist = Math.hypot(dx, dy) || 1;
-  const step = (ATTRACT_SPEED * dtMs) / 1000;
+  const step = (ATTRACT_SPEED * speedMultiplier * dtMs) / 1000;
   const move = Math.min(step, dist);
   return {
     ...v,
