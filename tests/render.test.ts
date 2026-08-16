@@ -25,6 +25,7 @@ function stubCtx(): { ctx: CanvasRenderingContext2D; texts: string[]; textCalls:
     get imageSmoothingEnabled() { return true; },
     set imageSmoothingEnabled(_: unknown) {},
     fillRect: (x: number, y: number, w: number, h: number) => { rects.push({ x, y, w, h }); },
+    strokeRect: (x: number, y: number, w: number, h: number) => { rects.push({ x, y, w, h }); },
     clearRect: () => {},
     drawImage: (_img: unknown, sx: number, sy: number, _sw: number, _sh: number, dx: number, dy: number, dw: number, dh: number) => {
       draws.push({ sx, sy, dx, dy, dw, dh });

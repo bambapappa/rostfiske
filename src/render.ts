@@ -375,10 +375,19 @@ export function drawScene(ctx: CanvasRenderingContext2D, state: GameState, sprit
 
   // --- HUD (v1.2: bait line moved to the #tackle DOM panel; sourceDomain
   //     shows on the panel's active slot, full source on each catch splash) ---
-  ctx.fillStyle = '#fff'; ctx.font = '7px monospace'; ctx.textAlign = 'left';
-  ctx.fillText(`Röster: ${state.votes}`, 4, 10);
-  ctx.fillText(`Släppta: ${state.released}`, 4, 20);
-  ctx.fillText(`Tid: ${Math.ceil(state.timeLeftMs / 1000)}s`, 4, 30);
+  ctx.save();
+  ctx.fillStyle = 'rgba(12, 14, 26, 0.78)';
+  ctx.fillRect(2, 2, 58, 31);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(2.5, 2.5, 57, 30);
+  ctx.restore();
+
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 7px monospace'; ctx.textAlign = 'left';
+  ctx.fillText(`Röster: ${state.votes}`, 6, 11);
+  ctx.fillText(`Släppta: ${state.released}`, 6, 20);
+  ctx.fillText(`Tid: ${Math.ceil(state.timeLeftMs / 1000)}s`, 6, 29);
+
 
   // --- active trend breaking news banner (slides down from top of canvas) ---
   const activeTrend = state.activeTrend ?? state.trend;
