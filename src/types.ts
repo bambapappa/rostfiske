@@ -132,6 +132,7 @@ export type SpotId =
 export interface FishingSpot {
   id: SpotId;
   name: string;
+  key?: string;
   x: number; y: number; // logical px where the politician stands
   bias: Partial<Record<Category, number>>; // weight multiplier per category
 }

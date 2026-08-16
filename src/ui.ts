@@ -177,7 +177,17 @@ export function renderBuildingBadges(
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'building-badge' + (s.id === activeSpotId ? ' active' : '');
-    btn.textContent = s.name;
+    if (s.key) {
+      const keySpan = document.createElement('span');
+      keySpan.className = 'key-hint';
+      keySpan.textContent = s.key;
+      btn.appendChild(keySpan);
+    }
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'badge-name';
+    nameSpan.textContent = s.name;
+    btn.appendChild(nameSpan);
+
     const leftPct = (s.x / LOGICAL_W) * 100;
     const topPct = (s.id === 'torget' ? (s.y - 18) / LOGICAL_H : (s.y + 4) / LOGICAL_H) * 100;
     btn.style.left = `${leftPct}%`;
@@ -189,6 +199,7 @@ export function renderBuildingBadges(
     container.appendChild(btn);
   }
 }
+
 
 /** Render a rich, neutral Valvaka results overlay modal over the game stage. */
 export function showGameOverModal(

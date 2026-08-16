@@ -2,13 +2,13 @@ import { LOGICAL_W, LOGICAL_H, type Category } from './constants';
 import type { FishingSpot, SpotId, Building, Rect } from './types';
 
 export const SPOTS: FishingSpot[] = [
-  { id: 'torget',       name: 'Torget',        x: 256, y: 160, bias: {} },
-  { id: 'skolan',       name: 'Skolan',        x: 80,  y: 76,  bias: { utbildning: 6 } },
-  { id: 'aldreboendet', name: 'Äldreboendet',  x: 430, y: 76,  bias: { välfärd: 6 } },
-  { id: 'stationen',    name: 'Stationen',     x: 256, y: 56,  bias: { infrastruktur: 6 } },
-  { id: 'bageriet',     name: 'Bageriet',      x: 140, y: 238, bias: {} },
-  { id: 'biblioteket',  name: 'Biblioteket',   x: 256, y: 248, bias: {} },
-  { id: 'apoteket',     name: 'Apoteket',      x: 392, y: 238, bias: {} },
+  { id: 'torget',       name: 'Torget',        key: 'Q', x: 256, y: 160, bias: {} },
+  { id: 'skolan',       name: 'Skolan',        key: 'W', x: 80,  y: 76,  bias: { utbildning: 6 } },
+  { id: 'aldreboendet', name: 'Äldreboendet',  key: 'E', x: 430, y: 76,  bias: { välfärd: 6 } },
+  { id: 'stationen',    name: 'Stationen',     key: 'R', x: 256, y: 56,  bias: { infrastruktur: 6 } },
+  { id: 'bageriet',     name: 'Bageriet',      key: 'A', x: 140, y: 238, bias: {} },
+  { id: 'biblioteket',  name: 'Biblioteket',   key: 'S', x: 256, y: 248, bias: {} },
+  { id: 'apoteket',     name: 'Apoteket',      key: 'D', x: 392, y: 238, bias: {} },
 ];
 
 export function spotById(id: SpotId): FishingSpot {

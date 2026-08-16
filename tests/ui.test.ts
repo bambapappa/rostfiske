@@ -383,14 +383,18 @@ describe('renderBuildingBadges', () => {
     const picked: string[] = [];
     renderBuildingBadges(container as unknown as HTMLElement, SPOTS, 'skolan', (id) => picked.push(id));
     expect(container.children).toHaveLength(SPOTS.length);
-    const skolanBtn = container.children.find((c) => c.textContent === 'Skolan')!;
+    const skolanBtn = container.children.find((c) => c.children.some((ch) => ch.textContent === 'Skolan'))!;
     expect(skolanBtn).toBeDefined();
     expect(skolanBtn.className).toContain('active');
+    const keyHint = skolanBtn.children.find((ch) => ch.className === 'key-hint');
+    expect(keyHint).toBeDefined();
+    expect(keyHint!.textContent).toBe('W');
     // Clicking triggers onSelect
     skolanBtn.listeners['click']![0]!({ stopPropagation: () => {} });
     expect(picked).toEqual(['skolan']);
   });
 });
+
 
 describe('showGameOverModal', () => {
   const g = globalThis as unknown as {
