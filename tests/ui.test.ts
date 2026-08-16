@@ -194,7 +194,74 @@ describe('showCharacterSelect', () => {
       expect(nameSpan(container.children[i]!)).toBeTruthy();
     });
   });
+
+  it('marks selected party with selected class when selectedParty is provided', () => {
+    const container = fakeEl('div');
+    showCharacterSelect(container as unknown as HTMLElement, PARTIES_TEST, undefined, () => {}, 'm');
+    const mBtn = container.children.find((c) => nameSpan(c).textContent === 'Moderaterna')!;
+    expect(mBtn.className).toContain('selected');
+    const sBtn = container.children.find((c) => nameSpan(c).textContent === 'Socialdemokraterna')!;
+    expect(sBtn.className).not.toContain('selected');
+  });
 });
+
+describe('renderLobbyPreview', () => {
+  const g = globalThis as unknown as { document?: { createElement: (t: string) => FakeEl } };
+  beforeEach(() => {
+    g.document = { createElement: (tag: string) => fakeEl(tag) };
+  });
+  afterEach(() => {
+    delete g.document;
+  });
+
+  const samplePromises: import('../src/types').PromiseData[] = Array.from({ length: 6 }, (_, i) => ({
+    id: 'p' + i,
+    title: 'Löfte ' + i,
+    quote: 'Citat om löfte ' + i,
+    party: 's',
+    category: 'välfärd',
+    msekBase: 1000,
+    status: 'aktiv',
+    source: { url: 'https://ex.se/' + i, domain: 'ex.se' },
+  }));
+
+  it('renders lobby header, 5 promise preview cards, guide and clickable start button', async () => {
+    const { renderLobbyPreview } = await import('../src/ui');
+    const container = fakeEl('div');
+    let started = false;
+    renderLobbyPreview(container as unknown as HTMLElement, PARTIES_TEST[0]!, samplePromises, () => { started = true; });
+
+    expect(container.children).toHaveLength(1);
+    const lobby = container.children[0]!;
+    expect(lobby.className).toBe('lobby-view');
+
+    // Header badge
+    const badge = byClass(lobby, 'party-badge')!;
+    expect(badge).toBeDefined();
+    expect(badge.textContent).toBe('Socialdemokraterna');
+
+    // 5 Promise cards
+    const grid = byClass(lobby, 'lobby-promises-grid')!;
+    expect(grid).toBeDefined();
+    expect(grid.children).toHaveLength(5);
+    expect(byClass(grid.children[0]!, 'card-title')!.textContent).toBe('Löfte 0');
+    expect(byClass(grid.children[0]!, 'card-quote')!.textContent).toBe('”Citat om löfte 0”');
+    expect(byClass(grid.children[0]!, 'card-source')!.textContent).toBe('Källa: ex.se');
+
+    // Start button
+    const startBtn = byClass(lobby, 'start-game-btn')!;
+    expect(startBtn).toBeDefined();
+    expect(startBtn.textContent).toContain('Starta valrörelsen med Socialdemokraterna');
+    startBtn.listeners['click']![0]!({});
+    expect(started).toBe(true);
+
+    // Guide
+    const guide = byClass(lobby, 'lobby-guide')!;
+    expect(guide).toBeDefined();
+    expect(guide.children.some((c) => c.className === 'guide-grid')).toBe(true);
+  });
+});
+
 
 describe('drawLeaderPortrait (v1.2)', () => {
   const img = SHEET_STUB;

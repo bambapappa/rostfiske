@@ -306,11 +306,12 @@ describe('drawScene', () => {
   });
 
   it('renders halo highlight around matching landed lapp when trend is active (v1.3)', () => {
+    const base = createGame({ party: 's', promises });
     const g = {
-      ...createGame({ party: 's', promises }),
-      lapp: { x: 150, y: 120, baitId: 'p0', flightProgress: 1 },
+      ...base,
+      lapp: { x: 150, y: 120, baitId: base.tackle[0]!.id, flightProgress: 1 },
       activeTrend: {
-        category: 'välfärd' as const,
+        category: base.tackle[0]!.category,
         headline: 'EXTRA: Vård och välfärd i fokus i opinionsmätning!',
         startsAtMs: 20_000,
         expiresAtMs: 32_000,
@@ -323,4 +324,5 @@ describe('drawScene', () => {
     const halo = arcCalls.find((a) => Math.abs(a.x - 150.5) <= 1 && Math.abs(a.y - 119) <= 1);
     expect(halo).toBeDefined();
   });
+
 });

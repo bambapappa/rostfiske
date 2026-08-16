@@ -4,7 +4,7 @@ import { createGame, step, onHookClick, castLapp, changeSpot, type GameState } f
 import { drawScene } from './render';
 import { bindInput } from './input';
 import { loadStore, saveStore, addScore, bestOf, bestByParty } from './highscore';
-import { eventText, showCharacterSelect, renderTackle, renderBuildingBadges, showGameOverModal } from './ui';
+import { eventText, showCharacterSelect, renderTackle, renderBuildingBadges, showGameOverModal, renderLobbyPreview } from './ui';
 import { activeBait } from './bait';
 import { LOGICAL_W, LOGICAL_H, ROUND_MS, type PartyCode } from './constants';
 import { SPOTS, spotById } from './world';
@@ -13,15 +13,18 @@ import { initAudio, playSound, toggleMute, isMuted } from './audio';
 
 async function main(): Promise<void> {
   const canvas = document.getElementById('game') as HTMLCanvasElement;
-  canvas.width = LOGICAL_W; canvas.height = LOGICAL_H;
   const ctx = canvas.getContext('2d')!;
+  canvas.width = LOGICAL_W;
+  canvas.height = LOGICAL_H;
   ctx.imageSmoothingEnabled = false;
 
-  const [{ promises, parties }, sprites] = await Promise.all([fetchGameInput(), loadSprites()]);
+  const [input, sprites] = await Promise.all([fetchGameInput(), loadSprites()]);
+  const { parties, promises } = input;
   const store = loadStore();
   const overlay = document.getElementById('overlay');
   const tacklePanel = document.getElementById('tackle');
   const badgesContainer = document.getElementById('badges');
+  const stage = document.getElementById('stage');
   const muteBtn = document.getElementById('mute-btn') as HTMLButtonElement | null;
 
   const updateMuteUi = (): void => {
@@ -43,19 +46,39 @@ async function main(): Promise<void> {
     });
   }
 
-  // Start flow: character select → game. All 8 parties presented identically
-  // (same frame, same 48×72 pixel portrait, PARTIES order).
+  // Pre-game flow: Character selection with promise preview & guide lobby
+  let selectedParty: PartyCode = 's';
   const select = document.getElementById('select');
-  if (select) {
+
+  function renderLobby(): void {
+    if (!select || !stage) return;
+    const currentPartyData = parties.find((p) => p.code === selectedParty) ?? parties[0]!;
     showCharacterSelect(select, parties, sprites.get('politicians'), (party: PartyCode) => {
       initAudio();
       playSound('click');
-      select.textContent = '';
-      start(party);
+      selectedParty = party;
+      renderLobby();
+    }, selectedParty);
+
+    let lobbyOverlay = document.getElementById('lobby-overlay');
+    if (!lobbyOverlay) {
+      lobbyOverlay = document.createElement('div');
+      lobbyOverlay.id = 'lobby-overlay';
+      stage.appendChild(lobbyOverlay);
+    }
+    renderLobbyPreview(lobbyOverlay, currentPartyData, promises, () => {
+      initAudio();
+      playSound('click');
+      if (lobbyOverlay) lobbyOverlay.remove();
+      if (select) select.textContent = '';
+      start(selectedParty);
     });
+  }
+
+  if (select && stage) {
+    renderLobby();
   } else {
-    // no container in the document: nothing to play from
-    console.warn('rostfiske: #select saknas');
+    console.warn('rostfiske: #select or #stage saknas');
     return;
   }
 

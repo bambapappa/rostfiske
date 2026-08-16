@@ -69,7 +69,13 @@ export function drawLeaderPortrait(canvas: HTMLCanvasElement, img: HTMLImageElem
  *  politicians sheet (loadSprites().get('politicians')). It may be undefined
  *  when the asset failed to load — every button still gets its (blank) canvas
  *  so the 8 options stay identical in structure. */
-export function showCharacterSelect(container: HTMLElement, parties: PartyData[], sheet: HTMLImageElement | undefined, onPick: (p: PartyCode) => void): void {
+export function showCharacterSelect(
+  container: HTMLElement,
+  parties: PartyData[],
+  sheet: HTMLImageElement | undefined,
+  onPick: (p: PartyCode) => void,
+  selectedParty?: PartyCode,
+): void {
   container.textContent = '';
   const ordered = [...parties].sort(
     (a, b) => PARTIES.indexOf(a.code) - PARTIES.indexOf(b.code),
@@ -77,7 +83,7 @@ export function showCharacterSelect(container: HTMLElement, parties: PartyData[]
   for (const p of ordered) {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'party-option';
+    btn.className = 'party-option' + (p.code === selectedParty ? ' selected' : '');
     btn.title = p.name;
     btn.style.borderColor = p.color;
 
@@ -94,6 +100,121 @@ export function showCharacterSelect(container: HTMLElement, parties: PartyData[]
     btn.addEventListener('click', () => onPick(p.code));
     container.appendChild(btn);
   }
+}
+
+/** Render pre-game lobby with selected party's 5 promises preview and game guide. */
+export function renderLobbyPreview(
+  container: HTMLElement,
+  party: PartyData,
+  promises: Array<import('./types').PromiseData>,
+  onStartGame: () => void,
+): void {
+  container.replaceChildren();
+  const lobby = document.createElement('div');
+  lobby.className = 'lobby-view';
+
+  // Header with party badge
+  const header = document.createElement('div');
+  header.className = 'lobby-header';
+
+  const badge = document.createElement('span');
+  badge.className = 'party-badge';
+  badge.style.backgroundColor = party.color;
+  badge.textContent = party.name;
+  header.appendChild(badge);
+
+  const sub = document.createElement('span');
+  sub.className = 'lobby-subtitle';
+  sub.textContent = 'Partiets 5 vallöften i valrörelsen:';
+  header.appendChild(sub);
+
+  lobby.appendChild(header);
+
+  // 5 Promises Grid
+  const grid = document.createElement('div');
+  grid.className = 'lobby-promises-grid';
+
+  const partyPromises = promises.filter((p) => p.party === party.code).slice(0, 5);
+  for (let i = 0; i < partyPromises.length; i++) {
+    const p = partyPromises[i]!;
+    const card = document.createElement('div');
+    card.className = 'lobby-promise-card';
+    const catColor = CATEGORY_COLORS[p.category] ?? '#ffe66d';
+
+    const top = document.createElement('div');
+    top.className = 'card-top';
+
+    const slotNum = document.createElement('span');
+    slotNum.className = 'card-slot';
+    slotNum.textContent = `Bete ${i + 1}`;
+    top.appendChild(slotNum);
+
+    const catBadge = document.createElement('span');
+    catBadge.className = 'card-category';
+    catBadge.style.backgroundColor = catColor;
+    catBadge.textContent = p.category;
+    top.appendChild(catBadge);
+
+    card.appendChild(top);
+
+    const title = document.createElement('div');
+    title.className = 'card-title';
+    title.textContent = p.title;
+    card.appendChild(title);
+
+    const quote = document.createElement('div');
+    quote.className = 'card-quote';
+    quote.textContent = `”${p.quote}”`;
+    card.appendChild(quote);
+
+    const source = document.createElement('div');
+    source.className = 'card-source';
+    source.textContent = `Källa: ${p.source?.domain ?? 'utlovat.se'}`;
+    card.appendChild(source);
+
+    grid.appendChild(card);
+  }
+  lobby.appendChild(grid);
+
+  // Start button
+  const startBtn = document.createElement('button');
+  startBtn.type = 'button';
+  startBtn.className = 'start-game-btn';
+  startBtn.textContent = `Starta valrörelsen med ${party.name} →`;
+  startBtn.addEventListener('click', onStartGame);
+  lobby.appendChild(startBtn);
+
+  // Rules & guide section
+  const guide = document.createElement('div');
+  guide.className = 'lobby-guide';
+
+  const guideTitle = document.createElement('div');
+  guideTitle.className = 'guide-title';
+  guideTitle.textContent = '📖 Så spelar du & Så räknas mandaten';
+  guide.appendChild(guideTitle);
+
+  const guideGrid = document.createElement('div');
+  guideGrid.className = 'guide-grid';
+
+  const col1 = document.createElement('div');
+  col1.className = 'guide-col';
+  col1.innerHTML = '<strong>🎯 Fiske & Mothugg</strong><p>Gå till platser med hus-klick eller <code>Q,W,E,R,A,S,D</code>. Klicka på marken för att kasta ut lappen. När en väljare nappar (<strong>!</strong>), tryck <strong>Mellanslag</strong>!</p>';
+  guideGrid.appendChild(col1);
+
+  const col2 = document.createElement('div');
+  col2.className = 'guide-col';
+  col2.innerHTML = '<strong>📰 Valrörelse-trender</strong><p>När <code>EXTRA!</code>-debatter blossar upp har frågan <strong>2.5× intresse</strong> och 30% högre hastighet. Byt till rätt vallöfte med <code>1–5</code>!</p>';
+  guideGrid.appendChild(col2);
+
+  const col3 = document.createElement('div');
+  col3.className = 'guide-col';
+  col3.innerHTML = '<strong>📊 4%-spärren & Mandat</strong><p>Minst <strong>4 röster</strong> krävs för att klara 4%-spärren och ta plats i riksdagen (upp till 349 mandat). Omyndiga väljare saknar rösträtt och släpps tillbaka.</p>';
+  guideGrid.appendChild(col3);
+
+  guide.appendChild(guideGrid);
+  lobby.appendChild(guide);
+
+  container.appendChild(lobby);
 }
 
 /** Tackle panel (#tackle): one slot per bait in the tackle (TACKLE_SIZE = 5).
@@ -125,7 +246,7 @@ export function renderTackle(container: HTMLElement, tackle: Bait[], activeBaitI
     const active = b.id === activeBaitId;
     const slot = document.createElement('div');
     slot.className = 'slot' + (active ? ' active' : '') + (worn ? ' worn' : '');
-    slot.title = b.title;
+    slot.title = `[${b.category.toUpperCase()}] ${b.title}\n"${b.quote}"\nKälla: ${b.sourceDomain} (${b.sourceUrl})`;
 
     const hint = document.createElement('span');
     hint.className = 'hint';
