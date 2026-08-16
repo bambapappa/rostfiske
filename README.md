@@ -2,8 +2,10 @@
 
 [![CI](https://github.com/bambapappa/rostfiske/actions/workflows/ci.yml/badge.svg)](https://github.com/bambapappa/rostfiske/actions/workflows/ci.yml)
 [![Deploy](https://github.com/bambapappa/rostfiske/actions/workflows/deploy.yml/badge.svg)](https://github.com/bambapappa/rostfiske/actions/workflows/deploy.yml)
-[![License: CC0](https://img.shields.io/badge/License-CC0_1.0-blue.svg)](https://creativecommons.org/publicdomain/zero/1.0/)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Data: CC BY 4.0](https://img.shields.io/badge/Data-CC_BY_4.0-orange.svg)](https://creativecommons.org/licenses/by/4.0/)
+[![Sprites: CC0](https://img.shields.io/badge/Sprites-CC0_1.0-green.svg)](https://creativecommons.org/publicdomain/zero/1.0/)
+
 
 Ett 8-bitars pixel-arkadspel där du fiskar väljarröster under valdagen 2026 med hjälp av **autentiska vallöften** hämtade direkt från [utlovat.se](https://utlovat.se).
 
