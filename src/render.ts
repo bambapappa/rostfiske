@@ -13,9 +13,17 @@ import type { PartyData, Voter } from './types';
 const TILE_GRASS = 0;        // plain grass
 const TILE_GRASS_ALT = 1;    // grass with speckles
 const TILE_FLOWERS = 2;      // grass with white/yellow flowers
-const TILE_TREE = 5;         // green tree (transparent bg → drawn as prop)
-const TILE_TREE_FALL = 3;    // autumn tree (prop)
-const TILE_BUSH = 16;        // bush (prop)
+// 16x16 self-contained single-tile tree props
+const TILE_TREE_ROUND = 5;      // round green canopy
+const TILE_TREE_FALL_MED = 27;  // autumn pine with trunk (16x16)
+const TILE_TREE_GREEN_MED = 28; // green pine with trunk (16x16)
+
+// 16x32 two-tile pine trees (top crown + bottom base/trunk)
+const PINE_GREEN_TOP = 4;
+const PINE_GREEN_BOT = 16;
+const PINE_FALL_TOP = 3;
+const PINE_FALL_BOT = 15;
+
 const TILE_DIRT = 25;        // plain dirt road
 const TILE_PLAZA = 109;      // plain light concrete (torget)
 const GRAY_TOP = [48, 49, 50];   // slate-roof building, roof row (left/mid/right)
@@ -74,27 +82,77 @@ function buildTerrain(): number[][] {
 
 const TERRAIN = buildTerrain();
 
-/** Transparent props (trees/bushes) drawn on top of the terrain. */
-const PROPS: Array<[col: number, row: number, tile: number]> = [
-  // top edge (skip stationen cols 15..17)
-  [0, 0, TILE_TREE], [2, 0, TILE_TREE], [4, 0, TILE_TREE_FALL], [6, 0, TILE_TREE],
-  [8, 0, TILE_TREE], [10, 0, TILE_TREE_FALL], [12, 0, TILE_TREE], [14, 0, TILE_TREE_FALL],
-  [18, 0, TILE_TREE], [20, 0, TILE_TREE_FALL], [22, 0, TILE_TREE], [24, 0, TILE_TREE_FALL],
-  [26, 0, TILE_TREE], [28, 0, TILE_TREE], [30, 0, TILE_TREE_FALL],
-  // bottom edge
-  [0, 17, TILE_TREE], [2, 17, TILE_TREE_FALL], [4, 17, TILE_TREE], [6, 17, TILE_TREE],
-  [8, 17, TILE_TREE_FALL], [10, 17, TILE_TREE], [12, 17, TILE_TREE], [14, 17, TILE_TREE_FALL],
-  [18, 17, TILE_TREE], [20, 17, TILE_TREE], [22, 17, TILE_TREE_FALL], [24, 17, TILE_TREE],
-  [26, 17, TILE_TREE_FALL], [28, 17, TILE_TREE], [30, 17, TILE_TREE_FALL], [31, 17, TILE_TREE],
-  // side edges
-  [0, 3, TILE_TREE], [0, 6, TILE_TREE_FALL], [0, 9, TILE_TREE], [0, 12, TILE_TREE_FALL], [0, 15, TILE_TREE],
-  [31, 3, TILE_TREE_FALL], [31, 6, TILE_TREE], [31, 9, TILE_TREE_FALL], [31, 12, TILE_TREE],
-  // scattered interior greenery (clear of doors, roads and plaza)
-  [1, 8, TILE_TREE], [2, 10, TILE_BUSH], [10, 8, TILE_TREE_FALL], [11, 10, TILE_BUSH],
-  [21, 8, TILE_BUSH], [22, 10, TILE_TREE], [29, 7, TILE_TREE_FALL], [30, 9, TILE_BUSH],
-  [6, 15, TILE_TREE], [11, 16, TILE_BUSH], [20, 15, TILE_TREE_FALL], [26, 15, TILE_BUSH],
-  [29, 14, TILE_BUSH], [30, 14, TILE_TREE],
-];
+/** Transparent props (complete trees/bushes) drawn on top of the terrain.
+ *  All 2-tile trees are always paired with both top crown + bottom trunk so no half trees appear. */
+function buildProps(): Array<[col: number, row: number, tile: number]> {
+  const props: Array<[number, number, number]> = [];
+
+  const addTree2 = (col: number, row: number, kind: 'green' | 'fall') => {
+    if (row < 0 || row + 1 >= TOWN_ROWS || col < 0 || col >= TOWN_COLS) return;
+    const topTile = kind === 'green' ? PINE_GREEN_TOP : PINE_FALL_TOP;
+    const botTile = kind === 'green' ? PINE_GREEN_BOT : PINE_FALL_BOT;
+    props.push([col, row, topTile], [col, row + 1, botTile]);
+  };
+
+  const addTree1 = (col: number, row: number, tile: number) => {
+    if (row < 0 || row >= TOWN_ROWS || col < 0 || col >= TOWN_COLS) return;
+    props.push([col, row, tile]);
+  };
+
+  // Top edge row of complete 2-tile trees (rows 0..1, clear of Stationen at cols 14..18)
+  const topCols: Array<[number, 'green' | 'fall']> = [
+    [0, 'green'], [2, 'fall'], [4, 'green'], [6, 'fall'],
+    [8, 'green'], [10, 'fall'], [12, 'green'],
+    [19, 'fall'], [21, 'green'], [23, 'fall'],
+    [25, 'green'], [27, 'fall'], [29, 'green'], [31, 'fall'],
+  ];
+  for (const [c, k] of topCols) {
+    addTree2(c, 0, k);
+  }
+
+  // Bottom edge row of complete 2-tile trees (rows 16..17, clear of building doors)
+  const botCols: Array<[number, 'green' | 'fall']> = [
+    [0, 'green'], [2, 'fall'], [4, 'green'],
+    [11, 'fall'], [13, 'green'],
+    [18, 'fall'], [20, 'green'],
+    [27, 'fall'], [29, 'green'], [31, 'fall'],
+  ];
+  for (const [c, k] of botCols) {
+    addTree2(c, 16, k);
+  }
+
+  // Left & Right boundary complete 2-tile trees
+  addTree2(0, 3, 'fall');
+  addTree2(0, 6, 'green');
+  addTree2(0, 9, 'fall');
+  addTree2(0, 12, 'green');
+
+  addTree2(31, 3, 'green');
+  addTree2(31, 6, 'fall');
+  addTree2(31, 9, 'green');
+  addTree2(31, 12, 'fall');
+
+  // Interior park greenery: self-contained 16x16 trees clear of roads, doors & torget
+  addTree1(1, 8, TILE_TREE_ROUND);
+  addTree1(2, 10, TILE_TREE_GREEN_MED);
+  addTree1(10, 8, TILE_TREE_FALL_MED);
+  addTree1(11, 11, TILE_TREE_ROUND);
+
+  addTree1(21, 8, TILE_TREE_ROUND);
+  addTree1(22, 10, TILE_TREE_GREEN_MED);
+  addTree1(29, 8, TILE_TREE_FALL_MED);
+  addTree1(30, 10, TILE_TREE_ROUND);
+
+  addTree1(5, 16, TILE_TREE_ROUND);
+  addTree1(12, 16, TILE_TREE_GREEN_MED);
+  addTree1(20, 16, TILE_TREE_FALL_MED);
+  addTree1(26, 16, TILE_TREE_ROUND);
+
+  return props;
+}
+
+const PROPS: Array<[col: number, row: number, tile: number]> = buildProps();
+
 
 function partyColor(parties: PartyData[], code: string): string {
   return parties.find((p) => p.code === code)?.color ?? FALLBACK_COLOR;
