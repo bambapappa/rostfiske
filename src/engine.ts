@@ -168,6 +168,29 @@ export function castLapp(state: GameState, x: number, y: number): GameState {
   };
 }
 
+/** Change the politician's active fishing spot. Moving to a new spot reels in any
+ *  active cast (lapp: null) and resets biting state so the player must cast anew from the new spot. */
+export function changeSpot(state: GameState, spotId: SpotId): GameState {
+  if (state.spotId === spotId) return state;
+  const spot = spotById(spotId);
+  // Any attracted or biting voter reverts to wander since the bait is reeled in
+  const voters = state.voters.map((v) => {
+    if (v.state === 'toLapp' || v.state === 'biting') {
+      return { ...v, state: 'wander' as const, attractToX: undefined, attractToY: undefined, biteDeadline: undefined };
+    }
+    return v;
+  });
+  return {
+    ...state,
+    spotId,
+    spotX: spot.x,
+    spotY: spot.y,
+    lapp: null,
+    bitingVoterId: null,
+    voters,
+  };
+}
+
 export function step(state: GameState, dtMs: number): GameState {
   if (state.phase !== 'playing') return state;
   const timeLeftMs = Math.max(0, state.timeLeftMs - dtMs);

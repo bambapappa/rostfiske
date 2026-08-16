@@ -1,6 +1,6 @@
 import { fetchGameInput } from './api';
 import { loadSprites } from './sprites';
-import { createGame, step, onHookClick, castLapp, type GameState } from './engine';
+import { createGame, step, onHookClick, castLapp, changeSpot, type GameState } from './engine';
 import { drawScene } from './render';
 import { bindInput } from './input';
 import { loadStore, saveStore, addScore, bestOf, bestByParty } from './highscore';
@@ -78,8 +78,7 @@ async function main(): Promise<void> {
       if (id !== g.spotId) {
         playSound('click');
       }
-      const s = spotById(id);
-      g = { ...g, spotId: id, spotX: s.x, spotY: s.y };
+      g = changeSpot(g, id);
       if (badgesContainer) {
         renderBuildingBadges(badgesContainer, SPOTS, g.spotId, setSpot);
       }

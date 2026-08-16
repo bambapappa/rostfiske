@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createGame, step, onHookClick, castLapp, buildTrendSchedule, type GameState } from '../src/engine';
+import { createGame, step, onHookClick, castLapp, changeSpot, buildTrendSchedule, type GameState } from '../src/engine';
 import {
   ROUND_MS, MAX_VOTERS, TACKLE_SIZE, LOGICAL_W, LOGICAL_H, CATEGORIES, CAST_RADIUS,
   TREND_1_START_MS, TREND_2_START_MS, TREND_DURATION_MS, TREND_ATTRACT_BOOST, TREND_HEADLINES,
@@ -717,3 +717,48 @@ describe('campaign trends & news events (v1.3)', () => {
     expect(skatterVoter.state).toBe('wander');
   });
 });
+
+describe('changeSpot', () => {
+  it('reels in active lapp and clears biting state when changing spot', () => {
+    const g = mk();
+    const castState = castLapp(g, g.spotX + 40, g.spotY + 20);
+    expect(castState.lapp).not.toBeNull();
+
+    const bitingState: GameState = {
+      ...castState,
+      bitingVoterId: 99,
+      voters: [
+        voter({ id: 99, state: 'biting', biteDeadline: 5000 }),
+        voter({ id: 100, state: 'toLapp', attractToX: castState.lapp!.x, attractToY: castState.lapp!.y }),
+        voter({ id: 101, state: 'wander' }),
+      ],
+    };
+
+    const movedState = changeSpot(bitingState, 'skolan');
+    expect(movedState.spotId).toBe('skolan');
+    expect(movedState.spotX).toBe(80);
+    expect(movedState.spotY).toBe(76); // doorY
+    expect(movedState.lapp).toBeNull();
+    expect(movedState.bitingVoterId).toBeNull();
+
+    // Attracted and biting voters revert to wander
+    const v99 = movedState.voters.find((v) => v.id === 99)!;
+    expect(v99.state).toBe('wander');
+    expect(v99.biteDeadline).toBeUndefined();
+
+    const v100 = movedState.voters.find((v) => v.id === 100)!;
+    expect(v100.state).toBe('wander');
+    expect(v100.attractToX).toBeUndefined();
+
+    const v101 = movedState.voters.find((v) => v.id === 101)!;
+    expect(v101.state).toBe('wander');
+  });
+
+  it('is a no-op if moving to the same spot', () => {
+    const g = mk();
+    const castState = castLapp(g, g.spotX + 40, g.spotY + 20);
+    const sameState = changeSpot(castState, g.spotId);
+    expect(sameState).toBe(castState);
+  });
+});
+
