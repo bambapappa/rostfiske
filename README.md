@@ -12,11 +12,12 @@ pnpm dev
 
 ### Kontroller
 
-- **Klicka på en byggnad** — gå dit (byt plats: skolan, äldreboendet, stationen; klicka på torget för torget)
-- **Klicka på marken** — kasta lapp (mete), eller mothugg vid napp
+- **Klicka på en byggnad** — gå dit (byt plats: skolan, äldreboendet, stationen, bageriet, biblioteket, apoteket; klicka på torget för torget)
+- **Klicka på marken** — kasta vallöfte, eller mothugg vid napp
 - **Mellanslag** — mothugg vid napp
-- **Q/W/E/R** — byt plats (torget, skolan, äldreboendet, stationen)
-- **1–5** — välj bete (väljarkategori), eller klicka i betespanelen
+- **Q/W/E/R/A/S/D** — byt plats snabbt via tangentbordet
+- **1–5** — välj vallöfte (bete), eller klicka i betespanelen
+
 
 ### Valvaka & Mandatfördelning (v1.3)
 
